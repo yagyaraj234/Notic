@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Notic — Icon explorations</title>
+  <style>
+    :root { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; color: #242427; background: #fafaf9; font-synthesis: none; }
+    * { box-sizing: border-box; }
+    body { margin: 0; --surface: #f0f0ee; --muted: #66666b; --line: #dededb; }
+    body.dark { color: #f3f3f2; background: #19191b; --surface: #242427; --muted: #aaaab0; --line: #3c3c40; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; cursor: pointer; }
+    button:active, .download:active { opacity: .65; }
+    :focus-visible { outline: 3px solid #3579d5; outline-offset: 5px; }
+    main { max-width: 1440px; margin: auto; padding: 38px 56px 32px; }
+    nav { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    .brand { font-weight: 650; font-size: 21px; letter-spacing: -.7px; display: flex; gap: 10px; align-items: center; }
+    .brand-mark { display: flex; flex-direction: column; gap: 3px; transform: rotate(-10deg); }
+    .brand-mark i { width: 16px; height: 5px; border-radius: 2px; background: #eaba66; }
+    .brand-mark i:nth-child(2) { background: #ec9284; }
+    .brand-mark i:nth-child(3) { background: #93bbae; }
+    .collection { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+    header { padding: 72px 0 44px; }
+    .eyebrow { text-transform: uppercase; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: var(--muted); margin: 0 0 16px; }
+    h1 { font-size: clamp(36px, 5vw, 60px); line-height: 1.08; letter-spacing: -.055em; font-weight: 550; margin: 0 0 18px; }
+    .intro { color: var(--muted); font-size: 16px; line-height: 1.6; max-width: 540px; margin: 0; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 0; border-top: 1px solid var(--line); }
+    .toolbar p { font-size: 12px; color: var(--muted); margin: 0; }
+    .appearance { display: flex; gap: 3px; background: var(--surface); border-radius: 9px; padding: 3px; }
+    .appearance button { border: 0; background: transparent; color: var(--muted); border-radius: 6px; padding: 8px 15px; font-size: 12px; min-height: 32px; }
+    .appearance button[aria-pressed="true"] { background: #fff; color: #242427; box-shadow: 0 1px 4px #00000014; }
+    .dark .appearance button[aria-pressed="true"] { background: #45454b; color: #fff; }
+    .gallery { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; }
+    article { min-width: 0; }
+    .stage { background: var(--surface); border-radius: 18px; aspect-ratio: 1 / 1.2; display: grid; place-items: center; position: relative; }
+    .number { position: absolute; top: 16px; left: 17px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+    .hero-icon { width: 82%; height: auto; overflow: visible; }
+    .caption { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-top: 20px; }
+    h2 { margin: 0; font-size: 15px; letter-spacing: -.03em; font-weight: 600; }
+    .download { color: var(--muted); text-decoration: none; font-size: 12px; white-space: nowrap; padding: 8px 0 8px 8px; }
+    .download:hover { color: inherit; text-decoration: underline; }
+    .description { font-size: 12px; color: var(--muted); line-height: 1.6; min-height: 58px; margin: 6px 0 16px; }
+    .sizes { display: flex; align-items: end; gap: 17px; border-top: 1px solid var(--line); padding: 18px 0 0; }
+    .size { display: flex; flex-direction: column; align-items: center; gap: 9px; color: var(--muted); font-size: 9px; }
+    .size img { display: block; }
+    .principles { margin-top: 56px; padding: 25px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 2fr; gap: 32px; }
+    .principles h3 { margin: 0; font-size: 13px; font-weight: 550; }
+    .principles p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; max-width: 620px; }
+    footer { display: flex; justify-content: space-between; gap: 20px; padding-top: 28px; color: var(--muted); font-size: 10px; }
+    @media (min-width: 1500px) { main { padding-top: 50px; } header { padding-top: 95px; } }
+    @media (max-width: 1050px) { .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px 20px; } main { padding: 28px; } }
+    @media (max-width: 640px) { main { padding: 24px 20px; } header { padding: 52px 0 34px; } .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 14px; } .stage { border-radius: 14px; } .caption { flex-wrap: wrap; gap: 0; padding-top: 12px; } .download { padding-left: 0; } .description { min-height: 58px; } .sizes { gap: 12px; } .principles { grid-template-columns: 1fr; gap: 12px; margin-top: 38px; } .collection { font-size: 10px; } .toolbar p { max-width: 150px; line-height: 1.5; } }
+    @media (max-width: 350px) { .gallery { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <nav aria-label="Collection"><div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>notic</div><span class="collection">MAC APP / ICON STUDIES</span></nav>
+    <header><p class="eyebrow">Small notes. A distinct presence.</p><h1>Five ways to make a mark.</h1><p class="intro">A little paper. A little depth. An icon for the notes that stay beside you, right at the edge of your Mac.</p></header>
+    <div class="toolbar"><p>05 concepts · Vector artwork</p><div class="appearance" role="group" aria-label="Preview background"><button type="button" aria-pressed="true" data-theme="light">Light</button><button type="button" aria-pressed="false" data-theme="dark">Dark</button></div></div>
+    <section class="gallery" aria-label="Five Notic app icon concepts"></section>
+    <aside class="principles"><h3>One idea. Clearly expressed.</h3><p>Familiar paper shapes, a strong silhouette, restrained colour, and soft directional light. Each concept uses the same rounded-square canvas, with small-size previews to judge what survives in the Dock.</p></aside>
+    <footer><span>NOTIC · ICON EXPLORATIONS</span><span>Original concepts · Standalone SVG downloads</span></footer>
+  </main>
+  <script>
+    const concepts = [
+      {
+        name: 'Edge Stack', slug: 'edge-stack', description: 'Pastel notes meet the screen edge. The closest expression of Notic.',
+        top: '#fdfbf5', bottom: '#deddd6',
+        art: `<rect x="173" y="56" width="10" height="146" rx="5" fill="#8e8c85" opacity=".22"/>
+          <g filter="url(#paperShadow)">
+            <rect x="72" y="65" width="115" height="57" rx="13" transform="rotate(-9 187 90)" fill="url(#mint)" stroke="#e1f9ed" stroke-width="1.5"/>
+            <rect x="63" y="98" width="124" height="58" rx="13" transform="rotate(-4 187 125)" fill="url(#coral)" stroke="#ffdad0" stroke-width="1.5"/>
+            <rect x="53" y="137" width="134" height="60" rx="13" fill="url(#yellow)" stroke="#fff3c8" stroke-width="1.5"/>
+          </g><path d="M73 157h67m-67 16h44" fill="none" stroke="#9e722e" stroke-opacity=".55" stroke-width="7" stroke-linecap="round"/>`
+      },
+      {
+        name: 'Paper Fold', slug: 'paper-fold', description: 'One warm sheet. A lifted corner makes a quiet, familiar signature.',
+        top: '#ffd47d', bottom: '#e89630',
+        art: `<g filter="url(#paperShadow)"><path d="M69 50h118v112l-47 46H69a14 14 0 0 1-14-14V64a14 14 0 0 1 14-14Z" fill="url(#paper)" stroke="#fff9e9" stroke-width="2"/>
+          <path d="M140 208v-32a14 14 0 0 1 14-14h33Z" fill="#d8bd7e"/>
+          <path d="M140 208c9-29 18-40 47-46h-33a14 14 0 0 0-14 14Z" fill="#fff6d8"/>
+          </g><path d="M80 88h80m-80 23h80m-80 23h47" stroke="#b29462" stroke-width="8" stroke-linecap="round" opacity=".7"/>`
+      },
+      {
+        name: 'Note Fan', slug: 'note-fan', description: 'A small collection, always within reach. Colour becomes the identity.',
+        top: '#527d78', bottom: '#234d4c',
+        art: `<g filter="url(#paperShadow)">
+          <rect x="73" y="57" width="104" height="142" rx="13" transform="rotate(-23 125 166)" fill="url(#coral)" stroke="#ffd1c5" stroke-width="2"/>
+          <rect x="76" y="53" width="104" height="142" rx="13" transform="rotate(1 128 166)" fill="url(#mint)" stroke="#ddf6e8" stroke-width="2"/>
+          <g transform="rotate(22 133 166)"><rect x="80" y="56" width="104" height="142" rx="13" fill="url(#yellow)" stroke="#fff1bb" stroke-width="2"/>
+          <path d="M101 89h61m-61 19h61m-61 19h36" stroke="#b88c3f" stroke-width="6" stroke-linecap="round" opacity=".65"/></g></g>`
+      },
+      {
+        name: 'Ribbon N', slug: 'ribbon-n', description: 'A folded strip of paper becomes an N. Simple enough to spot at a glance.',
+        top: '#b3a2e7', bottom: '#7464ad',
+        art: `<g filter="url(#paperShadow)"><path d="M59 192V73a12 12 0 0 1 12-12h27v131Z" fill="url(#paper)"/>
+          <path d="M158 192V61h39v119a12 12 0 0 1-12 12Z" fill="url(#paper)"/>
+          <path d="M98 61 197 192h-39L59 61Z" fill="#d8c6f0"/>
+          <path d="m59 61 39 9 99 122h-39Z" fill="url(#ribbon)"/>
+          <path d="M60 62h37l99 129" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2"/></g>`
+      },
+      {
+        name: 'Pinned Note', slug: 'pinned-note', description: 'A note worth keeping close. A tactile pin adds a tiny moment of delight.',
+        top: '#9cc9e3', bottom: '#5b96b9',
+        art: `<g transform="rotate(-8 128 136)"><g filter="url(#paperShadow)"><path d="M65 68h126v131H78a13 13 0 0 1-13-13Z" fill="url(#paper)" stroke="#fff9e9" stroke-width="2"/>
+          <path d="M65 177c45 5 83 3 126-8v30H78a13 13 0 0 1-13-13Z" fill="#ecdcb1" opacity=".4"/>
+          </g><path d="M88 119h79m-79 22h79m-79 22h47" fill="none" stroke="#b8a176" stroke-width="7" stroke-linecap="round" opacity=".6"/></g>
+          <ellipse cx="134" cy="87" rx="19" ry="9" fill="#46352d" opacity=".2" filter="url(#blur)"/>
+          <path d="m131 72-6 25" stroke="#73635b" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="133" cy="67" r="20" fill="url(#pin)" filter="url(#paperShadow)"/><ellipse cx="127" cy="59" rx="7" ry="5" fill="#ffcec0" opacity=".7"/>`
+      }
+    ];
+
+    function svgFor(concept) {
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 256 256" role="img" aria-label="Notic ${concept.name} icon">
+        <defs>
+          <linearGradient id="tile" x2=".2" y2="1"><stop stop-color="${concept.top}"/><stop offset="1" stop-color="${concept.bottom}"/></linearGradient>
+          <linearGradient id="paper" x2=".2" y2="1"><stop stop-color="#fffef6"/><stop offset="1" stop-color="#f3e7c6"/></linearGradient>
+          <linearGradient id="yellow" x2=".2" y2="1"><stop stop-color="#ffe9a6"/><stop offset="1" stop-color="#ecc369"/></linearGradient>
+          <linearGradient id="coral" x2=".2" y2="1"><stop stop-color="#ffc0ac"/><stop offset="1" stop-color="#e88d7b"/></linearGradient>
+          <linearGradient id="mint" x2=".2" y2="1"><stop stop-color="#c7e7d7"/><stop offset="1" stop-color="#8fbdab"/></linearGradient>
+          <linearGradient id="ribbon" x2=".7" y2="1"><stop stop-color="#fffef8"/><stop offset=".5" stop-color="#eee7fa"/><stop offset="1" stop-color="#d7c5ef"/></linearGradient>
+          <radialGradient id="pin" cx=".3" cy=".2" r=".85"><stop stop-color="#ffb398"/><stop offset=".5" stop-color="#ed785e"/><stop offset="1" stop-color="#b84031"/></radialGradient>
+          <filter id="tileShadow" x="-25%" y="-20%" width="150%" height="160%"><feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#17191c" flood-opacity=".18"/></filter>
+          <filter id="paperShadow" x="-50%" y="-50%" width="200%" height="210%"><feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#372918" flood-opacity=".22"/></filter>
+          <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
+        </defs>
+        <rect x="20" y="20" width="216" height="216" rx="49" fill="url(#tile)" filter="url(#tileShadow)"/>
+        <rect x="21" y="21" width="214" height="214" rx="48" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.5"/>
+        ${concept.art}
+      </svg>`;
+    }
+
+    const gallery = document.querySelector('.gallery');
+    concepts.forEach((concept, index) => {
+      const source = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgFor(concept))}`;
+      const card = document.createElement('article');
+      card.innerHTML = `<div class="stage"><span class="number">0${index + 1}</span><img class="hero-icon" src="${source}" alt="${concept.name}: ${concept.description}" width="256" height="256"></div>
+        <div class="caption"><h2>${concept.name}</h2><a class="download" href="${source}" download="notic-${concept.slug}.svg" aria-label="Download ${concept.name} SVG">SVG ↓</a></div>
+        <p class="description">${concept.description}</p><div class="sizes" aria-label="Icon at 16, 32, and 64 pixels">${[16, 32, 64].map(size => `<div class="size"><img src="${source}" alt="" width="${size}" height="${size}"><span>${size}</span></div>`).join('')}</div>`;
+      gallery.append(card);
+    });
+    document.querySelectorAll('[data-theme]').forEach(button => {
+      button.addEventListener('click', () => {
+        document.body.classList.toggle('dark', button.dataset.theme === 'dark');
+        document.querySelectorAll('[data-theme]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
+      });
+    });
+  </script>
+</body>
+</html>

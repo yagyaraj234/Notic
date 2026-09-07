@@ -1,0 +1,86 @@
+name: Notic
+options:
+  bundleIdPrefix: com.yagyaraj
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+
+packages:
+  NoticCore:
+    path: ..
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+
+targets:
+  Notic:
+    type: application
+    platform: macOS
+    sources:
+      - path: Notic/Sources
+      - path: Notic/Resources/Fonts
+        type: folder
+    dependencies:
+      - package: NoticCore
+        product: NoticCore
+    info:
+      path: Notic/Info.plist
+      properties:
+        CFBundleDisplayName: Notic
+        CFBundleName: Notic
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.productivity
+        NSPrincipalClass: NSApplication
+        NSHumanReadableCopyright: "© 2026 Yagyaraj Lodhi"
+        ATSApplicationFontsPath: Fonts
+    entitlements:
+      path: Notic/Notic.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yagyaraj.notic
+        PRODUCT_NAME: Notic
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+        GENERATE_INFOPLIST_FILE: NO
+
+  NoticUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: NoticUITests
+    dependencies:
+      - target: Notic
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yagyaraj.notic.uitests
+        TEST_TARGET_NAME: Notic
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Notic:
+    build:
+      targets:
+        Notic: all
+        NoticUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - NoticUITests
