@@ -5,12 +5,14 @@ import Observation
 /// commands enter here and all observable state is published from here.
 @Observable
 public final class NoticWorkspace {
-    private let store: any NoteStore
+    private var store: any NoteStore
     private let settingsStore: any SettingsStore
     private let scheduler: any NoticScheduler
 
     /// Every known note, including those pending deletion, keyed by identifier.
     private var notes: [Note.ID: Note] = [:]
+
+    public private(set) var notesDirectory: URL?
 
     public private(set) var settings: NoticSettings
 
@@ -41,13 +43,32 @@ public final class NoticWorkspace {
     }
 
     /// Opens a workspace whose SwiftData store and settings live in `directory`.
-    public convenience init(directory: URL, scheduler: any NoticScheduler = SystemScheduler()) throws {
+    public convenience init(directory: URL, notesDirectory: URL? = nil, scheduler: any NoticScheduler = SystemScheduler()) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try self.init(
-            store: SwiftDataNoteStore(url: directory.appending(path: "Notes.store")),
+            store: SwiftDataNoteStore(url: (notesDirectory ?? directory).appending(path: "Notes.store")),
             settingsStore: JSONSettingsStore(url: directory.appending(path: "Settings.json")),
             scheduler: scheduler
         )
+        self.notesDirectory = notesDirectory ?? directory
+    }
+
+    /// Copies the complete library into a new directory, then switches future writes.
+    /// The original store remains untouched as a backup; existing destinations are refused.
+    public func relocateNotes(to directory: URL) throws {
+        flushPendingChanges()
+        guard saveState == .saved else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSLocalizedDescriptionKey: "Save current changes before changing the notes folder."])
+        }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        let destination = try SwiftDataNoteStore(url: directory.appending(path: "Notes.store"))
+        try destination.upsert(Array(notes.values))
+        let verification = try SwiftDataNoteStore(url: directory.appending(path: "Notes.store"))
+        guard Set(try verification.fetchAll()) == Set(notes.values) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        store = destination
+        notesDirectory = directory
     }
 
     // MARK: Published collections

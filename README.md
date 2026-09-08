@@ -13,7 +13,8 @@ box to mark it done. Notes come in
 eight pastel colours that stay light in dark mode by default (Settings ▸ Paper
 switches to darker paper that matches the appearance; the lean can be turned
 off there too). Everything is managed in a searchable two-pane library. No
-account, no network, no telemetry.
+account, no network, no telemetry. Choose Patrick Hand, System font, Chalkboard,
+Marker Felt, Georgia, or Menlo in Settings → General → Notes, with a live preview.
 
 The product specification lives in [`SPEC.md`](SPEC.md).
 
@@ -77,17 +78,23 @@ above all apps* preference applies to expanded editors.
 
 ## Data, privacy, and uninstalling
 
-- Notes and settings live inside the app sandbox at
+- By default, notes and settings live inside the app sandbox at
   `~/Library/Containers/com.yagyaraj.notic/Data/Library/Application Support/Notic/`
   (`Notes.store` is a SwiftData/SQLite store; `Settings.json` holds preferences).
+- Settings → General → Storage → Choose Folder copies the entire library into a new
+  subfolder and switches future saves there. The old library stays as a backup.
+  Preferences stay in the sandbox. This stores a Notic database, not individual text files.
+  Keep the chosen folder available; Notic reports an error if it cannot reopen it.
+  Cloud-folder providers may upload these files; simultaneous multi-Mac editing is unsupported.
 - Notic never opens a network connection and contains no analytics,
   crash-reporting, or third-party SDKs.
 - Notes are not encrypted by Notic; the sandbox, your macOS account, and
-  FileVault are the security boundary. Back up the directory above (or rely on
+  FileVault protect default storage; custom folders use their filesystem permissions.
+  Back up your selected notes folder and the settings directory (or rely on
   Time Machine) — deleting a note permanently removes it from the store ten
   seconds after the Undo window closes.
 - To uninstall: quit Notic, turn off *Launch at Login* in Settings if you enabled
-  it, move `Notic.app` to the Trash, and delete the container folder above.
+  it, move `Notic.app` to the Trash, and delete the container folder above. Custom libraries and old backups remain in their chosen folders.
 
 ## Test-only launch arguments
 

@@ -7,6 +7,21 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
         case handwriting
         /// The macOS system font, for maximum legibility.
         case system
+        case chalkboard
+        case markerFelt
+        case georgia
+        case menlo
+
+        public var title: String {
+            switch self {
+            case .handwriting: "Patrick Hand"
+            case .system: "System font"
+            case .chalkboard: "Chalkboard"
+            case .markerFelt: "Marker Felt"
+            case .georgia: "Georgia"
+            case .menlo: "Menlo"
+            }
+        }
     }
 
     /// How note paper responds to the system appearance.

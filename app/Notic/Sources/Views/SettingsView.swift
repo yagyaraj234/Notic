@@ -7,6 +7,7 @@ import SwiftUI
 /// the system's own preferences chrome.
 struct SettingsView: View {
     let workspace: NoticWorkspace
+    let chooseNotesFolder: () -> Void
 
     enum Pane: String, CaseIterable, Hashable {
         case general
@@ -94,11 +95,18 @@ struct SettingsView: View {
     private var general: some View {
         pane(title: "General", subtitle: "How notes and the deck look and behave.") {
             Section("Notes") {
-                Picker("Handwriting", selection: binding(\.fontChoice)) {
-                    Text("Patrick Hand").tag(NoticSettings.FontChoice.handwriting)
-                    Text("System font").tag(NoticSettings.FontChoice.system)
+                Picker("Note font", selection: binding(\.fontChoice)) {
+                    ForEach(NoticSettings.FontChoice.allCases, id: \.self) { choice in
+                        Text(choice.title).tag(choice)
+                    }
                 }
                 .accessibilityIdentifier("notic.settings.font")
+
+                Text("A little space for your thoughts.")
+                    .font(Font(FontRegistry.nsFont(workspace.settings.fontChoice, size: CGFloat(workspace.settings.textSize))))
+                    .padding(.vertical, 4)
+                    .accessibilityLabel("Note font preview")
+                    .accessibilityIdentifier("notic.settings.fontPreview")
 
                 Picker("Text size", selection: binding(\.textSize)) {
                     ForEach(NoticSettings.textSizeOptions, id: \.self) { size in
@@ -189,6 +197,26 @@ struct SettingsView: View {
                     .accessibilityIdentifier("notic.settings.fullScreen")
             }
 
+            Section("Storage") {
+                LabeledContent("Notes folder") {
+                    Text(workspace.notesDirectory?.path(percentEncoded: false) ?? "Default")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .accessibilityIdentifier("notic.settings.notesFolder")
+                }
+                HStack {
+                    Button("Choose Folder…", action: chooseNotesFolder)
+                        .accessibilityIdentifier("notic.settings.chooseNotesFolder")
+                    Button("Show in Finder") {
+                        if let directory = workspace.notesDirectory { NSWorkspace.shared.open(directory) }
+                    }
+                }
+                Text("Changing folders copies all notes into a new Notic library. The previous library stays as a backup. Notes are stored in Notic’s database format.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Application") {
                 Toggle("Show Notic in the Dock", isOn: binding(\.showsDockIcon))
                     .accessibilityIdentifier("notic.settings.dock")
@@ -222,13 +250,13 @@ struct SettingsView: View {
             }
 
             Section("Privacy") {
-                Text("Notes are stored only in Notic's sandbox on this Mac. Notic makes no network requests and collects no analytics.")
+                Text("Notes are stored in the notes folder shown in General settings. Notic makes no network requests and collects no analytics. If you choose a cloud-synced folder, its provider may upload your notes.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
             Section("Acknowledgements") {
-                Text("Notes are set in Patrick Hand by Patricia Marziali, used under the SIL Open Font License 1.1.")
+                Text("Patrick Hand by Patricia Marziali is bundled under the SIL Open Font License 1.1. Other font choices use fonts installed with macOS.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -313,7 +341,7 @@ private struct SidebarRow: View {
 }
 
 final class SettingsWindowController: NSWindowController {
-    init(workspace: NoticWorkspace) {
+    init(workspace: NoticWorkspace, chooseNotesFolder: @escaping () -> Void) {
         let window = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 760, height: 660),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
@@ -326,7 +354,7 @@ final class SettingsWindowController: NSWindowController {
         window.isReleasedWhenClosed = false
         window.setAccessibilityIdentifier("notic.settings")
         super.init(window: window)
-        window.contentView = NSHostingView(rootView: SettingsView(workspace: workspace))
+        window.contentView = NSHostingView(rootView: SettingsView(workspace: workspace, chooseNotesFolder: chooseNotesFolder))
     }
 
     @available(*, unavailable)

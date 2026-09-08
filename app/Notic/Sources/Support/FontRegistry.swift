@@ -17,23 +17,27 @@ enum FontRegistry {
         }
     }
 
+    private static func family(_ choice: NoticSettings.FontChoice) -> String? {
+        switch choice {
+        case .handwriting: handwritingFamily
+        case .system: nil
+        case .chalkboard: "Chalkboard"
+        case .markerFelt: "MarkerFelt-Thin"
+        case .georgia: "Georgia"
+        case .menlo: "Menlo-Regular"
+        }
+    }
+
     /// AppKit counterpart of `font(_:size:relativeTo:)`, for the note body view.
     static func nsFont(_ choice: NoticSettings.FontChoice, size: CGFloat) -> NSFont {
-        switch choice {
-        case .handwriting:
-            NSFont(name: handwritingFamily, size: size) ?? .systemFont(ofSize: size)
-        case .system:
-            .systemFont(ofSize: size)
-        }
+        family(choice).flatMap { NSFont(name: $0, size: size) } ?? .systemFont(ofSize: size)
     }
 
     /// A font for `choice` that scales with the system text size.
     static func font(_ choice: NoticSettings.FontChoice, size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
-        switch choice {
-        case .handwriting:
-            .custom(handwritingFamily, size: size, relativeTo: style)
-        case .system:
-            .system(style, design: .default)
+        if let family = family(choice), let resolved = NSFont(name: family, size: size) {
+            return .custom(resolved.fontName, size: size, relativeTo: style)
         }
+        return .system(style, design: .default)
     }
 }

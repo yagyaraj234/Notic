@@ -4,6 +4,16 @@ import NoticCore
 
 @Suite("Settings")
 struct SettingsTests {
+    @Test(arguments: NoticSettings.FontChoice.allCases)
+    func `every font choice survives relaunch`(font: NoticSettings.FontChoice) throws {
+        let fixture = try WorkspaceFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        let workspace = try fixture.launch()
+        workspace.updateSettings { $0.fontChoice = font }
+        #expect(workspace.saveState == .saved)
+        #expect(try fixture.launch().settings.fontChoice == font)
+    }
+
     @Test func `stack position defaults right and persists every edge`() throws {
         let legacy = try JSONDecoder().decode(NoticSettings.self, from: Data("{}".utf8))
         #expect(legacy.stackPosition == .right)

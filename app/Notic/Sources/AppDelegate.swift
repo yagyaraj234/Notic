@@ -5,6 +5,11 @@ import os
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let log = Logger(subsystem: "com.yagyaraj.notic", category: "app")
 
+    private var storageAccess: URL?
+    private var customNotesDirectory: URL?
+    private var usesTestDirectory = false
+    private static let storageBookmarkKey = "notesFolderBookmark"
+
     private var workspace: NoticWorkspace?
     private var menuBar: MenuBarController?
     private var displays: DisplayManager?
@@ -20,7 +25,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let launchOptions = LaunchOptions(arguments: CommandLine.arguments)
         let workspace: NoticWorkspace
         do {
-            workspace = try NoticWorkspace(directory: launchOptions.resolveDataDirectory(default: Self.dataDirectory))
+            usesTestDirectory = launchOptions.dataDirectory != nil
+            if !usesTestDirectory, let location = UserDefaults.standard.dictionary(forKey: Self.storageBookmarkKey) {
+                guard let bookmark = location["bookmark"] as? Data else { throw CocoaError(.fileReadCorruptFile) }
+                var stale = false
+                let folder = try URL(resolvingBookmarkData: bookmark, options: .withSecurityScope, bookmarkDataIsStale: &stale)
+                guard folder.startAccessingSecurityScopedResource() else {
+                    throw CocoaError(.fileReadNoPermission)
+                }
+                storageAccess = folder
+                guard let name = location["library"] as? String,
+                      name.hasPrefix("Notic Library "), !name.contains("/") else { throw CocoaError(.fileReadCorruptFile) }
+                let library = folder.appending(path: name, directoryHint: .isDirectory)
+                customNotesDirectory = library
+                guard FileManager.default.fileExists(atPath: library.appending(path: "Notes.store").path) else {
+                    throw CocoaError(.fileNoSuchFile)
+                }
+                if stale {
+                    let refreshed = try folder.bookmarkData(options: .withSecurityScope)
+                    UserDefaults.standard.set(["bookmark": refreshed, "library": name], forKey: Self.storageBookmarkKey)
+                }
+            }
+            workspace = try NoticWorkspace(
+                directory: launchOptions.resolveDataDirectory(default: Self.dataDirectory),
+                notesDirectory: customNotesDirectory
+            )
         } catch {
             log.fault("Could not open the note store: \(error.localizedDescription, privacy: .public)")
             presentFatalStoreError(error)
@@ -49,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let library = LibraryWindowController(workspace: workspace, commands: commands)
         self.library = library
         menus.openNote = { [weak library] id in library?.openNote(id) }
-        settingsWindow = SettingsWindowController(workspace: workspace)
+        settingsWindow = SettingsWindowController(workspace: workspace, chooseNotesFolder: { [weak self] in self?.chooseNotesFolder() })
 
         hotKeys = HotKeyCenter()
         hotKeys?.register(.newNote) { commands.newNote(nil) }
@@ -161,7 +190,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Storage
 
-    /// Notes live in the sandbox container's Application Support folder.
+    private func chooseNotesFolder() {
+        guard let workspace else { return }
+        let panel = NSOpenPanel()
+        panel.title = "Choose Notes Folder"
+        panel.message = "Notic creates a new library folder here and copies all notes into it. The previous library stays as a backup."
+        panel.prompt = "Choose Folder"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let parent = panel.url else { return }
+        let accessing = parent.startAccessingSecurityScopedResource()
+        defer { if accessing { parent.stopAccessingSecurityScopedResource() } }
+        let destination = parent.appending(path: "Notic Library \(UUID().uuidString)", directoryHint: .isDirectory)
+        var newAccess: URL?
+        do {
+            // Capture access before switching stores. Resolve on relaunch using the same bookmark.
+            let bookmark = try parent.bookmarkData(options: .withSecurityScope)
+            var stale = false
+            let resolved = try URL(resolvingBookmarkData: bookmark, options: .withSecurityScope, bookmarkDataIsStale: &stale)
+            guard resolved.startAccessingSecurityScopedResource() else { throw CocoaError(.fileWriteNoPermission) }
+            newAccess = resolved
+            try workspace.relocateNotes(to: destination)
+            if !usesTestDirectory {
+                UserDefaults.standard.set(["bookmark": bookmark, "library": destination.lastPathComponent], forKey: Self.storageBookmarkKey)
+            }
+            storageAccess?.stopAccessingSecurityScopedResource()
+            storageAccess = resolved
+        } catch {
+            newAccess?.stopAccessingSecurityScopedResource()
+            let alert = NSAlert()
+            alert.messageText = "Couldn’t change the notes folder"
+            alert.informativeText = "Your current library is still in use.\n\n\(error.localizedDescription)"
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    /// Default library and settings live in Application Support.
     private static var dataDirectory: URL {
         URL.applicationSupportDirectory.appending(path: "Notic", directoryHint: .isDirectory)
     }
