@@ -1,4 +1,5 @@
 import AppKit
+import NoticCore
 import SwiftUI
 
 /// Notic's motion vocabulary. Pointer peeks use a 120ms ease-out; springs
@@ -7,17 +8,28 @@ import SwiftUI
 /// default, with overshoot reserved for motion the user's own gesture
 /// carried momentum into.
 enum Motion {
+    /// Scales every duration Notic hands out. Set from the Animation speed
+    /// preference; the curves themselves never change.
+    static var speed: Double = NoticSettings.AnimationSpeed.normal.multiplier
+
+    /// Applies the animation-speed preference to a duration.
+    static func scaled(_ duration: TimeInterval) -> TimeInterval {
+        duration * speed
+    }
+
     /// One transition for the whole deck; also controls when its panel shrinks.
-    static let deckDuration: TimeInterval = 0.2
-    static let deckTransition = Animation.timingCurve(0.23, 1, 0.32, 1, duration: deckDuration)
+    static var deckDuration: TimeInterval { scaled(0.2) }
+    static var deckTransition: Animation {
+        .timingCurve(0.23, 1, 0.32, 1, duration: deckDuration)
+    }
 
     /// Response of the everyday settle: reflow and gesture release.
-    static let response: TimeInterval = 0.32
+    static var response: TimeInterval { scaled(0.32) }
 
     /// Critically damped: no overshoot. Use for anything that appears or
     /// re-lays out without a gesture behind it.
     static func settle(reduceMotion: Bool) -> Animation {
-        reduceMotion ? .easeOut(duration: 0.15) : .spring(duration: response, bounce: 0)
+        reduceMotion ? .easeOut(duration: scaled(0.15)) : .spring(duration: response, bounce: 0)
     }
 
     /// Pointer peeks: 2–6pt travel that must finish before the 120ms fan delay.
@@ -25,28 +37,28 @@ enum Motion {
     static func hover(reduceMotion: Bool) -> Animation {
         // cubic-bezier(0.23, 1, 0.32, 1), 120ms — hover budget is 100–160ms
         reduceMotion
-            ? .easeOut(duration: 0.12)
-            : .timingCurve(0.23, 1, 0.32, 1, duration: 0.12)
+            ? .easeOut(duration: scaled(0.12))
+            : .timingCurve(0.23, 1, 0.32, 1, duration: scaled(0.12))
     }
 
     /// Press scale/opacity. 160ms critically damped spring.
     static func press(reduceMotion: Bool) -> Animation {
-        reduceMotion ? .easeOut(duration: 0.12) : .spring(duration: 0.16, bounce: 0)
+        reduceMotion ? .easeOut(duration: scaled(0.12)) : .spring(duration: scaled(0.16), bounce: 0)
     }
 
     /// Recolour a surface that is already on screen.
     /// cubic-bezier(0.77, 0, 0.175, 1), 200ms.
     static func recolor(reduceMotion: Bool) -> Animation {
         reduceMotion
-            ? .easeOut(duration: 0.15)
-            : .timingCurve(0.77, 0, 0.175, 1, duration: 0.2)
+            ? .easeOut(duration: scaled(0.15))
+            : .timingCurve(0.77, 0, 0.175, 1, duration: scaled(0.2))
     }
 
     /// A spring that continues at the gesture's release velocity. SwiftUI's
     /// interpolating spring takes velocity relative to the remaining
     /// distance, so callers pass `gestureVelocity / (target - current)`.
     static func handoff(relativeVelocity: Double, reduceMotion: Bool) -> Animation {
-        if reduceMotion { return .easeOut(duration: 0.15) }
+        if reduceMotion { return .easeOut(duration: scaled(0.15)) }
         // stiffness 200 / mass 1 is critically damped at ~28.3; 24 is a
         // damping ratio of ~0.85, a little bounce for a thrown tab.
         return .interpolatingSpring(mass: 1, stiffness: 200, damping: 24, initialVelocity: relativeVelocity)

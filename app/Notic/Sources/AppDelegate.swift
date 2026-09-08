@@ -66,6 +66,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         launchOptions.seed(workspace, displays: displays)
+        if launchOptions.opensSettings {
+            showSettings()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -129,6 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hasReconciledLaunchAtLogin = false
 
     private func apply(_ settings: NoticSettings) {
+        Motion.speed = settings.animationSpeed.multiplier
         let policy: NSApplication.ActivationPolicy = settings.showsDockIcon ? .regular : .accessory
         if NSApp.activationPolicy() != policy {
             NSApp.setActivationPolicy(policy)

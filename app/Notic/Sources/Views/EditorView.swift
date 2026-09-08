@@ -42,7 +42,7 @@ struct EditorView: View {
 
             NoteBodyEditor(
                 text: workspace.note(noteID)?.body ?? note.body,
-                font: FontRegistry.nsFont(fontChoice, size: 21),
+                font: FontRegistry.nsFont(fontChoice, size: CGFloat(workspace.settings.textSize)),
                 ink: NSColor(swatch.foreground),
                 onChange: { workspace.updateBody(of: noteID, to: $0) }
             )

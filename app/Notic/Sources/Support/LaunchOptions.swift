@@ -13,6 +13,8 @@ struct LaunchOptions {
     var seedNoteCount = 0
     /// `-NoticOpenSeededNote`: open the first seeded note on the primary display.
     var opensSeededNote = false
+    /// `-NoticOpenSettings`: show the settings window on launch.
+    var opensSettings = false
 
     init(arguments: [String]) {
         var iterator = arguments.dropFirst().makeIterator()
@@ -30,6 +32,8 @@ struct LaunchOptions {
                 resetsData = true
             case "-NoticOpenSeededNote":
                 opensSeededNote = true
+            case "-NoticOpenSettings":
+                opensSettings = true
             default:
                 continue
             }
