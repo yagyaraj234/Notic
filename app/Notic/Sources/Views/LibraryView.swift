@@ -19,6 +19,7 @@ final class LibraryModel {
 struct LibraryView: View {
     let workspace: NoticWorkspace
     @Bindable var model: LibraryModel
+    let commands: AppCommands
     let openNote: (Note.ID) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -92,7 +93,7 @@ struct LibraryView: View {
                                         if note.lifecycle == .active { openNote(note.id) }
                                     }
                                     .simultaneousGesture(TapGesture().onEnded { model.focused = note.id })
-                                    .contextMenu { rowMenu(for: note) }
+                                    .secondaryClickMenu { commands.libraryMenu(note.id) }
                                     .transition(.opacity)
                                 }
                             }
@@ -306,24 +307,6 @@ struct LibraryView: View {
         }
     }
 
-    @ViewBuilder
-    private func rowMenu(for note: Note) -> some View {
-        if note.lifecycle == .active {
-            Button("Open") { openNote(note.id) }
-            Button("Mark complete") {
-                withAnimation(Motion.hover(reduceMotion: reduceMotion)) {
-                    workspace.archive([note.id])
-                }
-            }
-        } else {
-            Button("Restore") {
-                withAnimation(Motion.hover(reduceMotion: reduceMotion)) {
-                    workspace.restore([note.id])
-                }
-            }
-        }
-        Button("Delete", role: .destructive) { workspace.delete([note.id]) }
-    }
 }
 
 /// One line in the library list.
@@ -535,8 +518,8 @@ final class LibraryWindowController: NSWindowController {
         window.setFrameAutosaveName("NoticLibrary")
         window.setAccessibilityIdentifier("notic.library")
         super.init(window: window)
-        window.contentView = NSHostingView(rootView: LibraryView(workspace: workspace, model: model) { [weak self] id in
-            self?.open(id)
+        window.contentView = NSHostingView(rootView: LibraryView(workspace: workspace, model: model, commands: commands) { [weak self] id in
+            self?.openNote(id)
         })
     }
 
@@ -552,7 +535,7 @@ final class LibraryWindowController: NSWindowController {
     }
 
     /// Opens an active note on the display showing the library.
-    private func open(_ id: Note.ID) {
+    func openNote(_ id: Note.ID) {
         guard let display = window?.screen?.noticDisplayID ?? NSScreen.main?.noticDisplayID else { return }
         workspace.openNote(id, on: display)
     }

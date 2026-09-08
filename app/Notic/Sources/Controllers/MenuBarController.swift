@@ -1,20 +1,19 @@
 import AppKit
 import NoticCore
 
-/// The status-bar item and its menu: New Note, All Notes, Archive,
-/// Hide/Show Notic, Settings, and Quit.
+/// The status-bar item and the quick menu it drops down. The menu itself is
+/// defined once in `NoticMenus`; this owns the item, refills the menu each
+/// time it opens, and carries the save warning on its icon.
 final class MenuBarController: NSObject, NSMenuDelegate {
     private let workspace: NoticWorkspace
-    private let commands: AppCommands
+    private let menus: NoticMenus
     private let statusItem: NSStatusItem
-    private let hideItem: NSMenuItem
     private var saveStateObservation: ObservationToken?
 
-    init(workspace: NoticWorkspace, commands: AppCommands) {
+    init(workspace: NoticWorkspace, menus: NoticMenus) {
         self.workspace = workspace
-        self.commands = commands
+        self.menus = menus
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        hideItem = NSMenuItem(title: "Hide Notic", action: #selector(toggleHidden), keyEquivalent: "")
         super.init()
 
         if let button = statusItem.button {
@@ -26,29 +25,15 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             self?.showSaveState(state)
         }
 
-        let menu = NSMenu()
+        let menu = menus.quickMenu()
         menu.delegate = self
-        menu.addItem(item("New Note", #selector(newNote), .newNote))
-        menu.addItem(.separator())
-        menu.addItem(item("All Notes", #selector(showLibrary), .showLibrary))
-        menu.addItem(item("Archive", #selector(showArchive), .showArchive))
-        menu.addItem(.separator())
-        apply(shortcut: .toggleHidden, to: hideItem)
-        hideItem.target = self
-        menu.addItem(hideItem)
-        menu.addItem(.separator())
-        let settings = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
-        settings.target = self
-        menu.addItem(settings)
-        menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit Notic", action: #selector(quit), keyEquivalent: "q")
-        quit.target = self
-        menu.addItem(quit)
         statusItem.menu = menu
     }
 
+    /// Hide/Show flips with `workspace.isHidden`, so the menu is refilled from
+    /// the shared definition every time it opens.
     func menuNeedsUpdate(_ menu: NSMenu) {
-        hideItem.title = workspace.isHidden ? "Show Notic" : "Hide Notic"
+        menus.populate(menu, forNote: nil, includeOpen: false)
     }
 
     private func showSaveState(_ state: SaveState) {
@@ -63,24 +48,4 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             button.setAccessibilityLabel("Notic")
         }
     }
-
-    private func item(_ title: String, _ action: Selector, _ shortcut: HotKeyCenter.Shortcut) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
-        item.target = self
-        apply(shortcut: shortcut, to: item)
-        return item
-    }
-
-    private func apply(shortcut: HotKeyCenter.Shortcut, to item: NSMenuItem) {
-        let (key, modifiers) = shortcut.keyEquivalent
-        item.keyEquivalent = key
-        item.keyEquivalentModifierMask = modifiers
-    }
-
-    @objc private func newNote() { commands.newNote(nil) }
-    @objc private func showLibrary() { commands.showLibrary() }
-    @objc private func showArchive() { commands.showArchive() }
-    @objc private func toggleHidden() { commands.toggleHidden() }
-    @objc private func showSettings() { commands.showSettings() }
-    @objc private func quit() { commands.quit() }
 }

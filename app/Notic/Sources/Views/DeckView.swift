@@ -70,6 +70,7 @@ struct DeckView: View {
                             workspace.openNote(note.id, on: display)
                         }
                         .highPriorityGesture(reorderGesture(for: note.id, index: index, notes: notes, metrics: metrics))
+                        .secondaryClickMenu { commands.dockMenu(note.id) }
                         .offset(y: tabOffset(index: index, dragging: dragging, metrics: metrics))
                         .zIndex(dragging ? 100 : Double(index))
                         .accessibilityIdentifier("notic.card.\(index)")
@@ -104,6 +105,7 @@ struct DeckView: View {
         .padding(.vertical, EdgeLayout.deckPadding)
         .frame(width: EdgeLayout.deckWidth, alignment: .topTrailing)
         .animation(Motion.settle(reduceMotion: reduceMotion), value: footerRows)
+        .secondaryClickMenu(behind: true) { commands.dockMenu(nil) }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Notic deck")
         .accessibilityIdentifier("notic.deck")

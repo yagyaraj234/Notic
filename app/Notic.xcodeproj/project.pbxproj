@@ -19,11 +19,13 @@
 		5773284081C2C89B17F1630E /* DeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09143CA4147CCC5E40776262 /* DeckView.swift */; };
 		66E19AF32E870384062BB94E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 76357320CEB5C6B500841324 /* Assets.xcassets */; };
 		6CA1829AB30F9FAB45ED9586 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EDE8DE9727C6BE7E563657F /* LibraryView.swift */; };
+		6F882C7DDD3C08AB98F672E0 /* SecondaryClickMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 910BE370706A7542B01C2148 /* SecondaryClickMenu.swift */; };
 		75282CFE811593E23B7690BC /* NoticCore in Frameworks */ = {isa = PBXBuildFile; productRef = 81F1487A69F1EE43B66121BC /* NoticCore */; };
 		7DAA085905BF18C98358FF50 /* FontRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F103F5AF99036AFC2F0DBFC /* FontRegistry.swift */; };
 		8664C9F884CC74ECEFDC5562 /* LaunchOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F52283DA4EB9A8A4CCD695D9 /* LaunchOptions.swift */; };
 		8761A5C56ED69F874B74033E /* NoticApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C5B6C6D0C6C4E9621B29018 /* NoticApp.swift */; };
 		87E508632CBD0986B1E947B5 /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25A5153528E5CE05482DF36 /* LaunchAtLogin.swift */; };
+		87FD8FC9593FF313D9149AAB /* NoticMenus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0805709783054E42A0A81FB4 /* NoticMenus.swift */; };
 		979A496DABEDD0FC695EBD84 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F69BF42322D946393BEE6ACE /* MenuBarController.swift */; };
 		A433182E45E18950F14CF0B3 /* EditorPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D141D6B22448AB1042BBB5A /* EditorPanel.swift */; };
 		AE3926FB5446FE89A0263D05 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6CFE3E198B25455A6EC7B8 /* AppDelegate.swift */; };
@@ -46,6 +48,7 @@
 
 /* Begin PBXFileReference section */
 		057D20888FC7821E91F585D1 /* EdgePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgePanel.swift; sourceTree = "<group>"; };
+		0805709783054E42A0A81FB4 /* NoticMenus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoticMenus.swift; sourceTree = "<group>"; };
 		09143CA4147CCC5E40776262 /* DeckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeckView.swift; sourceTree = "<group>"; };
 		109D1F6348CB1D98C9C58CBD /* notic */ = {isa = PBXFileReference; lastKnownFileType = folder; name = notic; path = ..; sourceTree = SOURCE_ROOT; };
 		1B984ADAC9DF325E63A933E6 /* HotKeyCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyCenter.swift; sourceTree = "<group>"; };
@@ -63,6 +66,7 @@
 		84582972E1AC1F6CB8979FDA /* NotePalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePalette.swift; sourceTree = "<group>"; };
 		8727CCCE7B21EF320FAE43E3 /* NoteBodyEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteBodyEditor.swift; sourceTree = "<group>"; };
 		88585D7AECAB6430B74AA918 /* Notic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		910BE370706A7542B01C2148 /* SecondaryClickMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondaryClickMenu.swift; sourceTree = "<group>"; };
 		9DFB2D38F84EAA15FDB1D5A9 /* WindowDragHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDragHandle.swift; sourceTree = "<group>"; };
 		A0C8D084621686E1A38BDDBE /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fonts; path = Notic/Resources/Fonts; sourceTree = SOURCE_ROOT; };
 		B5DA3AA8CD8F7DA831E74BE2 /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
@@ -162,6 +166,7 @@
 				6EDE8DE9727C6BE7E563657F /* LibraryView.swift */,
 				B5DA3AA8CD8F7DA831E74BE2 /* Motion.swift */,
 				8727CCCE7B21EF320FAE43E3 /* NoteBodyEditor.swift */,
+				910BE370706A7542B01C2148 /* SecondaryClickMenu.swift */,
 				C431B66ED025A12E15557E98 /* SettingsView.swift */,
 				9DFB2D38F84EAA15FDB1D5A9 /* WindowDragHandle.swift */,
 			);
@@ -182,6 +187,7 @@
 				434359578C7FD1FC3DCE5302 /* DisplayCoordinator.swift */,
 				DA7048C0D76EDA0193EEA287 /* DisplayManager.swift */,
 				F69BF42322D946393BEE6ACE /* MenuBarController.swift */,
+				0805709783054E42A0A81FB4 /* NoticMenus.swift */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -326,7 +332,9 @@
 				543EFA11B2A9E4E0CC05355C /* NoteBodyEditor.swift in Sources */,
 				EF6F8C726D5C3BBC5A6F459B /* NotePalette.swift in Sources */,
 				8761A5C56ED69F874B74033E /* NoticApp.swift in Sources */,
+				87FD8FC9593FF313D9149AAB /* NoticMenus.swift in Sources */,
 				4689F5C687973B52871633A2 /* ObservationToken.swift in Sources */,
+				6F882C7DDD3C08AB98F672E0 /* SecondaryClickMenu.swift in Sources */,
 				04DEFFB07A2F7775727343B4 /* SettingsView.swift in Sources */,
 				F994131CB4B4D3C8692128FE /* WindowDragHandle.swift in Sources */,
 			);

@@ -17,7 +17,7 @@ struct EdgeSurfaceView: View {
         // shrinks around it afterwards without the pill appearing to move.
         ZStack(alignment: .trailing) {
             if state == .dormant {
-                PillView(workspace: workspace, display: display)
+                PillView(workspace: workspace, display: display, commands: commands)
                     .transition(.opacity)
             } else {
                 // Enters and leaves along the same path: from and to the edge.
@@ -35,6 +35,7 @@ struct EdgeSurfaceView: View {
 struct PillView: View {
     let workspace: NoticWorkspace
     let display: DisplayID
+    let commands: AppCommands
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
@@ -66,6 +67,7 @@ struct PillView: View {
         .onHover { hovering = $0 }
         .accessibilityLabel("Notic notes")
         .accessibilityHint(notes.isEmpty ? "No active notes. Activate to show the deck." : "\(workspace.activeNotes.count) active notes. Activate to show the deck.")
+        .secondaryClickMenu { commands.dockMenu(nil) }
         .accessibilityIdentifier("notic.pill")
     }
 

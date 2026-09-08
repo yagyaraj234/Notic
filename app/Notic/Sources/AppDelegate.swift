@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var displays: DisplayManager?
     private var hotKeys: HotKeyCenter?
     private var library: LibraryWindowController?
+    private var menus: NoticMenus?
     private var settingsWindow: SettingsWindowController?
     private var settingsObservation: ObservationToken?
 
@@ -27,7 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.workspace = workspace
 
-        let commands = AppCommands(
+        var commands = AppCommands(
             newNote: { [weak self] display in self?.createNoteAndOpen(on: display) },
             showLibrary: { [weak self] in self?.showLibrary(filter: .all) },
             showArchive: { [weak self] in self?.showLibrary(filter: .archived) },
@@ -35,10 +36,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showSettings: { [weak self] in self?.showSettings() },
             quit: { NSApp.terminate(nil) }
         )
+        // The menus need the commands, and the surfaces that show them need
+        // the menus, so the factories reach the menu object indirectly.
+        commands.dockMenu = { [weak self] (id: Note.ID?) in self?.menus?.dockMenu(forNote: id) ?? NSMenu() }
+        commands.libraryMenu = { [weak self] (id: Note.ID) in self?.menus?.libraryMenu(forNote: id) ?? NSMenu() }
 
-        menuBar = MenuBarController(workspace: workspace, commands: commands)
+        let menus = NoticMenus(workspace: workspace, commands: commands)
+        self.menus = menus
+
+        menuBar = MenuBarController(workspace: workspace, menus: menus)
         displays = DisplayManager(workspace: workspace, commands: commands)
-        library = LibraryWindowController(workspace: workspace, commands: commands)
+        let library = LibraryWindowController(workspace: workspace, commands: commands)
+        self.library = library
+        menus.openNote = { [weak library] id in library?.openNote(id) }
         settingsWindow = SettingsWindowController(workspace: workspace)
 
         hotKeys = HotKeyCenter()
@@ -171,6 +181,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 /// The user-level actions shared by the menu bar, global shortcuts, and panels.
 struct AppCommands {
     let newNote: (DisplayID?) -> Void
+    /// The dock menu for the tab under the pointer, or for the bare dock.
+    var dockMenu: (Note.ID?) -> NSMenu = { _ in NSMenu() }
+    /// The library row menu for one note.
+    var libraryMenu: (Note.ID) -> NSMenu = { _ in NSMenu() }
     let showLibrary: () -> Void
     let showArchive: () -> Void
     let toggleHidden: () -> Void
