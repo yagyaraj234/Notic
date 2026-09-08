@@ -116,11 +116,15 @@ public final class NoticWorkspace {
 
     // MARK: Creating and editing
 
-    /// Creates an empty note at the front of the active deck.
+    /// Creates a timestamped note at the front of the active deck.
     @discardableResult
     public func createNote() -> Note.ID {
         let now = scheduler.now
-        let note = Note(sortOrder: nextFrontOrder(), createdAt: now, modifiedAt: now)
+        let titleFormatter = DateFormatter()
+        titleFormatter.locale = Locale(identifier: "en_IN")
+        titleFormatter.dateFormat = "d MMM yyyy · h:mm a"
+        let title = titleFormatter.string(from: now)
+        let note = Note(title: title, sortOrder: nextFrontOrder(), createdAt: now, modifiedAt: now)
         notes[note.id] = note
         dirtyIDs.insert(note.id)
         persist()

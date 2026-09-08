@@ -205,8 +205,7 @@ struct DeckView: View {
 
     private var addButton: some View {
         Button {
-            let id = workspace.createNote()
-            workspace.openNote(id, on: display)
+            commands.newNote(display)
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 15, weight: .medium))

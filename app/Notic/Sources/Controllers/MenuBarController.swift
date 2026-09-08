@@ -77,7 +77,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         item.keyEquivalentModifierMask = modifiers
     }
 
-    @objc private func newNote() { commands.newNote() }
+    @objc private func newNote() { commands.newNote(nil) }
     @objc private func showLibrary() { commands.showLibrary() }
     @objc private func showArchive() { commands.showArchive() }
     @objc private func toggleHidden() { commands.toggleHidden() }

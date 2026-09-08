@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 
 /// Application accessibility seam: launches the built app against clean local
@@ -34,6 +35,34 @@ final class NoticUITests: XCTestCase {
     private var deck: XCUIElement { app.otherElements["notic.deck"] }
     private var editorBody: XCUIElement { app.textViews["notic.editor.body"] }
 
+    private func assertEditorIsCentered(file: StaticString = #filePath, line: UInt = #line) {
+        let panel = app.windows["notic.editorPanel"]
+        XCTAssertTrue(panel.waitForExistence(timeout: 3), file: file, line: line)
+        guard let screen = NSScreen.main else {
+            XCTFail("Main screen is unavailable", file: file, line: line)
+            return
+        }
+        let expected = CGPoint(
+            x: screen.visibleFrame.midX,
+            y: screen.frame.maxY - screen.visibleFrame.midY
+        )
+        XCTAssertEqual(panel.frame.midX, expected.x, accuracy: 2, file: file, line: line)
+        XCTAssertEqual(panel.frame.midY, expected.y, accuracy: 2, file: file, line: line)
+    }
+
+    private func assertEditorHasTimestampTitle(file: StaticString = #filePath, line: UInt = #line) {
+        let title = app.textFields["notic.editor.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 3), file: file, line: line)
+        let value = title.value as? String ?? ""
+        XCTAssertNotEqual(value, "Untitled note", file: file, line: line)
+        XCTAssertNotNil(
+            value.range(of: #"^\d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM)$"#, options: .regularExpression),
+            "Unexpected generated title: \(value)",
+            file: file,
+            line: line
+        )
+    }
+
     // MARK: Edge pill and focus safety
 
     func testLaunchStaysInBackgroundAndShowsThePill() {
@@ -64,6 +93,8 @@ final class NoticUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["notic.firstNotePrompt"].waitForExistence(timeout: 3))
         app.buttons["notic.newNote"].click()
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
+        assertEditorIsCentered()
+        assertEditorHasTimestampTitle()
         XCTAssertFalse(app.staticTexts["notic.firstNotePrompt"].exists)
     }
 
@@ -145,5 +176,20 @@ final class NoticUITests: XCTestCase {
         finder.typeKey("n", modifierFlags: [.option, .command])
 
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
+        assertEditorIsCentered()
+        assertEditorHasTimestampTitle()
+    }
+
+    func testMenuBarNewNoteOpensCenteredWithATimestampTitle() {
+        launch()
+        let statusItem = app.statusItems.firstMatch
+        XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
+
+        statusItem.click()
+        app.menuItems["New Note"].click()
+
+        XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
+        assertEditorIsCentered()
+        assertEditorHasTimestampTitle()
     }
 }

@@ -28,7 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.workspace = workspace
 
         let commands = AppCommands(
-            newNote: { [weak self] in self?.createNoteAndOpen() },
+            newNote: { [weak self] display in self?.createNoteAndOpen(on: display) },
             showLibrary: { [weak self] in self?.showLibrary(filter: .all) },
             showArchive: { [weak self] in self?.showLibrary(filter: .archived) },
             toggleHidden: { [weak self] in self?.toggleHidden() },
@@ -42,7 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow = SettingsWindowController(workspace: workspace)
 
         hotKeys = HotKeyCenter()
-        hotKeys?.register(.newNote, action: commands.newNote)
+        hotKeys?.register(.newNote) { commands.newNote(nil) }
         hotKeys?.register(.showLibrary, action: commands.showLibrary)
         hotKeys?.register(.showArchive, action: commands.showArchive)
         hotKeys?.register(.toggleHidden, action: commands.toggleHidden)
@@ -87,12 +87,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Commands
 
-    private func createNoteAndOpen() {
+    private func createNoteAndOpen(on requestedDisplay: DisplayID?) {
         guard let workspace, let displays else { return }
         let id = workspace.createNote()
-        if let display = displays.displayUnderPointer() ?? displays.primaryDisplay() {
+        if let display = requestedDisplay ?? displays.displayUnderPointer() ?? displays.primaryDisplay() {
+            if let screen = NSScreen.screens.first(where: { $0.noticDisplayID == display }),
+               let size = workspace.note(id)?.editorSize {
+                workspace.setEditorOrigin(
+                    of: id,
+                    to: CGPoint(x: screen.visibleFrame.midX - size.width / 2, y: screen.visibleFrame.midY - size.height / 2)
+                )
+            }
             workspace.openNote(id, on: display)
-            displays.focusEditor(on: display)
+            if requestedDisplay == nil {
+                displays.focusEditor(on: display)
+            }
         }
     }
 
@@ -157,7 +166,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 /// The user-level actions shared by the menu bar, global shortcuts, and panels.
 struct AppCommands {
-    let newNote: () -> Void
+    let newNote: (DisplayID?) -> Void
     let showLibrary: () -> Void
     let showArchive: () -> Void
     let toggleHidden: () -> Void
