@@ -10,23 +10,56 @@ struct EdgeSurfaceView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// The state the surface is drawn in, which trails the workspace's state
+    /// by exactly one explicit transaction. `nil` until the first update, so
+    /// the surface's first appearance is not animated.
+    @State private var fanned: Bool?
+
     var body: some View {
-        let state = workspace.deckState(on: display)
-        // Both the pill and the deck are centred on the edge, so the pill can
-        // sit in the deck's panel while the deck slides away, and the panel
-        // shrinks around it afterwards without the pill appearing to move.
+        let target = workspace.deckState(on: display) != .dormant
+        let fanned = self.fanned ?? target
+        // The pill and the deck are both mounted, both centred on the edge,
+        // and the deck sits over the pill. Swapping one for the other left a
+        // frame with nothing on the edge at all — the pill was gone before the
+        // deck had been built. Now the deck covers the pill on the way out and
+        // uncovers it on the way back, and a fan interrupted halfway retargets
+        // from where it is rather than restarting.
         ZStack(alignment: .trailing) {
-            if state == .dormant {
-                PillView(workspace: workspace, display: display, commands: commands)
-                    .transition(.opacity)
-            } else {
-                // Enters and leaves along the same path: from and to the edge.
-                DeckView(workspace: workspace, display: display, geometry: geometry, commands: commands)
-                    .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
-            }
+            PillView(workspace: workspace, display: display, commands: commands)
+                .opacity(fanned ? 0 : 1)
+                .inert(fanned)
+
+            // Leaves along the path it arrived by: from and to the edge. It
+            // stays opaque throughout so that it always covers the pill; only
+            // reduced motion trades the travel for a fade.
+            DeckView(workspace: workspace, display: display, geometry: geometry, commands: commands)
+                .offset(x: fanned || reduceMotion ? 0 : EdgeLayout.deckWidth)
+                .opacity(!reduceMotion || fanned ? 1 : 0)
+                .inert(!fanned)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-        .animation(Motion.deckTransition, value: state == .dormant)
+        // One explicit transaction for both surfaces. Implicit animation was
+        // not reliably producing one here: the deck slid out but folded back
+        // in a single frame.
+        .onChange(of: target, initial: true) { _, target in
+            guard self.fanned != target else { return }
+            guard self.fanned != nil else {
+                self.fanned = target
+                return
+            }
+            withAnimation(Motion.deck(fanning: target, reduceMotion: reduceMotion)) {
+                self.fanned = target
+            }
+        }
+    }
+}
+
+private extension View {
+    /// Takes a surface out of play without unmounting it. Both edge surfaces
+    /// stay in the tree so neither has to be built mid-transition, so the one
+    /// that is faded out must not answer a click, a hover, or VoiceOver.
+    func inert(_ inert: Bool) -> some View {
+        allowsHitTesting(!inert).accessibilityHidden(inert)
     }
 }
 

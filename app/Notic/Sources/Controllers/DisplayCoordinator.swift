@@ -29,7 +29,9 @@ final class DisplayCoordinator {
             onPointerEntered: { workspace.pointerEntered(display) },
             onPointerExited: { workspace.pointerExited(display) }
         )
-        edgePanel.setFrame(layout.pillFrame(noteCount: workspace.deckNotes.count), display: false)
+        let deck = layout.deckMetrics(noteCount: workspace.deckNotes.count, hasOverflow: workspace.overflowCount > 0)
+        edgePanel.setFrame(deck.frame, display: false)
+        edgePanel.interactiveFrame = layout.pillFrame(noteCount: workspace.deckNotes.count)
         edgePanel.orderFrontRegardless()
 
         // Deliberately excludes note text so typing does not re-run layout.
@@ -91,7 +93,6 @@ final class DisplayCoordinator {
     func tearDown() {
         observation = nil
         tabDragObservation = nil
-        pendingShrink?.cancel()
         editorPanel?.orderOut(nil)
         editorPanel = nil
         for panel in retiring { panel.orderOut(nil) }
@@ -205,8 +206,6 @@ final class DisplayCoordinator {
         )
     }
 
-    private var pendingShrink: DispatchWorkItem?
-
     /// Same curve as return-to-tab: the editor is already on screen and
     /// moving to a new place, not appearing.
     private func glideEditor(_ panel: EditorPanel, to target: CGRect) {
@@ -220,24 +219,22 @@ final class DisplayCoordinator {
     private func refreshFrames(animated: Bool = true) {
         guard let current else { return }
         let deck = layout.deckMetrics(noteCount: current.deckCount, hasOverflow: current.hasOverflow, footerRows: current.footerRows)
-        let edgeFrame = current.state == .dormant ? layout.pillFrame(noteCount: current.deckCount) : deck.frame
-
-        pendingShrink?.cancel()
-        pendingShrink = nil
-        if edgePanel.frame != edgeFrame {
-            if current.state == .dormant, edgePanel.frame.height > edgeFrame.height {
-                // Let the tabs slide back to the edge before the panel closes
-                // around the pill; shrinking first would cut them off mid-flight.
-                let work = DispatchWorkItem { [weak self] in
-                    guard let self, self.current?.state == .dormant else { return }
-                    self.edgePanel.setFrame(edgeFrame, display: true)
-                }
-                pendingShrink = work
-                DispatchQueue.main.asyncAfter(deadline: .now() + Motion.deckDuration, execute: work)
-            } else {
-                edgePanel.setFrame(edgeFrame, display: true)
-            }
+        // The panel is the fanned deck's size whether or not the deck is
+        // fanned. Growing it as the deck fanned raced the deck's own
+        // animation — the slide began in a panel still only as wide as the
+        // dock and was clipped to a sliver for its first frames — and
+        // shrinking it afterwards had to be deferred to avoid cutting the
+        // tabs off mid-flight. Only `interactiveFrame` changes with the state.
+        //
+        // A window snaps its frame to whole points, so the deck's half-point
+        // centring never compares equal. Without the tolerance every state
+        // change re-set the frame to the place it was already in.
+        if !edgePanel.frame.equalTo(deck.frame, within: 1) {
+            edgePanel.setFrame(deck.frame, display: true)
         }
+        edgePanel.interactiveFrame = current.state == .dormant
+            ? layout.pillFrame(noteCount: current.deckCount)
+            : deck.frame
 
         if let editorPanel, !editorPanel.inLiveResize, !editorPanel.isPresenting, !editorPanel.isBeingDragged,
            let target = editorTarget(for: current), editorPanel.frame != target {
@@ -277,5 +274,14 @@ final class DisplayCoordinator {
         edgePanel.collectionBehavior = behaviour
         editorPanel?.collectionBehavior = behaviour
         editorPanel?.level = settings.showsAboveAllApps ? .floating : .normal
+    }
+}
+
+private extension CGRect {
+    /// Whether two frames name the same place, allowing for a window having
+    /// snapped its own frame to whole points.
+    func equalTo(_ other: CGRect, within tolerance: CGFloat) -> Bool {
+        abs(minX - other.minX) < tolerance && abs(minY - other.minY) < tolerance
+            && abs(width - other.width) < tolerance && abs(height - other.height) < tolerance
     }
 }

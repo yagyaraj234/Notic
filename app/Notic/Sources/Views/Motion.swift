@@ -17,10 +17,21 @@ enum Motion {
         duration * speed
     }
 
-    /// One transition for the whole deck; also controls when its panel shrinks.
+    /// The deck fanning out of the dock.
     static var deckDuration: TimeInterval { scaled(0.2) }
-    static var deckTransition: Animation {
-        .timingCurve(0.23, 1, 0.32, 1, duration: deckDuration)
+    /// Folding back is the system getting out of the way rather than the user
+    /// deciding, so it is shorter than the fan.
+    static var deckExitDuration: TimeInterval { scaled(0.14) }
+
+    /// The deck sliding out of, or back into, the screen edge. Strong ease-out
+    /// in both directions: the travel starts at full speed, where the pointer
+    /// is already looking. Driven by the deck's offset rather than by its
+    /// insertion, so a fan interrupted halfway retargets from where it is.
+    static func deck(fanning: Bool, reduceMotion: Bool) -> Animation {
+        let duration = fanning ? deckDuration : deckExitDuration
+        return reduceMotion
+            ? .easeOut(duration: duration)
+            : .timingCurve(0.23, 1, 0.32, 1, duration: duration)
     }
 
     /// Response of the everyday settle: reflow and gesture release.

@@ -29,6 +29,29 @@ final class EdgePanel: NSPanel {
         contentView = hosting
     }
 
+    /// The part of the screen the panel answers the pointer over: the dock's
+    /// stripe while the deck rests, the whole deck once it is fanned. The
+    /// panel itself is always the size of the fanned deck — resizing it as the
+    /// deck fans raced the deck's own animation and clipped it mid-flight — so
+    /// this is what keeps the rest of the panel out of the pointer's way.
+    var interactiveFrame: CGRect = .zero {
+        didSet {
+            guard interactiveFrame != oldValue else { return }
+            applyInteractiveFrame()
+        }
+    }
+
+    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        super.setFrame(frameRect, display: flag)
+        // The rect is held in screen coordinates, so moving the panel moves it.
+        applyInteractiveFrame()
+    }
+
+    private func applyInteractiveFrame() {
+        guard !interactiveFrame.isEmpty, let hosting = contentView as? HoverTrackingHostingView else { return }
+        hosting.interactiveRect = hosting.convert(convertFromScreen(interactiveFrame), from: nil)
+    }
+
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
@@ -57,9 +80,24 @@ final class HoverTrackingHostingView: NSHostingView<AnyView> {
         fatalError("Not supported")
     }
 
+    /// The panel is bigger than what it draws, so only this rect is Notic's.
+    /// Everything else has to fall through to whatever is behind it.
+    var interactiveRect: CGRect = .zero {
+        didSet {
+            guard interactiveRect != oldValue else { return }
+            updateTrackingAreas()
+        }
+    }
+
     /// The panel is never key, so the first click must reach the cards directly.
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         true
+    }
+
+    /// Points outside the interactive rect belong to the desktop, not to Notic.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard interactiveRect.contains(convert(point, from: superview)) else { return nil }
+        return super.hitTest(point)
     }
 
     override func updateTrackingAreas() {
@@ -67,9 +105,12 @@ final class HoverTrackingHostingView: NSHostingView<AnyView> {
         if let trackingArea {
             removeTrackingArea(trackingArea)
         }
+        // Not `.inVisibleRect`: the panel is the size of the fanned deck even
+        // while the deck rests, and resting on the desktop 80pt from the edge
+        // must not count as resting on the dock.
         let area = NSTrackingArea(
-            rect: .zero,
-            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            rect: interactiveRect,
+            options: [.mouseEnteredAndExited, .activeAlways],
             owner: self,
             userInfo: nil
         )
