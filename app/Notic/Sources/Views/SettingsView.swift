@@ -118,6 +118,13 @@ struct SettingsView: View {
             }
 
             Section("Deck") {
+                Picker("Stack position", selection: binding(\.stackPosition)) {
+                    Text("Right").tag(ScreenEdge.right)
+                    Text("Left").tag(ScreenEdge.left)
+                    Text("Bottom").tag(ScreenEdge.bottom)
+                }
+                .accessibilityIdentifier("notic.settings.stackPosition")
+
                 LabeledContent {
                     HStack(spacing: 10) {
                         Slider(

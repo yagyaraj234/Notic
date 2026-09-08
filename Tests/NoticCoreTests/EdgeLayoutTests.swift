@@ -4,6 +4,36 @@ import NoticCore
 
 @Suite("Edge layout")
 struct EdgeLayoutTests {
+    @Test func `all stack edges anchor on offset displays and keep editors inside`() {
+        let screen = CGRect(x: -1440, y: 80, width: 1440, height: 875)
+        for edge in ScreenEdge.allCases {
+            let layout = EdgeLayout(visibleFrame: screen, edge: edge)
+            let pill = layout.pillFrame(noteCount: 4)
+            let deck = layout.deckMetrics(noteCount: 4, hasOverflow: false, footerRows: 2)
+            #expect(screen.contains(pill))
+            #expect(screen.contains(deck.frame))
+            switch edge {
+            case .right:
+                #expect(deck.frame.maxX == screen.maxX)
+                #expect(pill.maxX == screen.maxX)
+            case .left:
+                #expect(deck.frame.minX == screen.minX)
+                #expect(pill.minX == screen.minX)
+            case .bottom:
+                #expect(deck.frame.minY == screen.minY)
+                #expect(pill.minY == screen.minY)
+                #expect(deck.frame.midX == screen.midX)
+                #expect(deck.frame.width > deck.frame.height)
+            }
+            for index in 0..<4 {
+                let editor = layout.editorFrame(size: CGSize(width: 580, height: 420), tabIndex: index, deck: deck)
+                #expect(screen.contains(editor))
+                if edge == .left { #expect(editor.minX == screen.minX + EdgeLayout.screenMargin) }
+                if edge == .bottom { #expect(editor.minY == screen.minY + EdgeLayout.screenMargin) }
+            }
+        }
+    }
+
     // A 1440x900 display with a 25pt menu bar, in AppKit coordinates.
     let layout = EdgeLayout(visibleFrame: CGRect(x: 0, y: 0, width: 1440, height: 875))
 

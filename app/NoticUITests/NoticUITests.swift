@@ -18,15 +18,20 @@ final class NoticUITests: XCTestCase {
     }
 
     /// Launches Notic with a fresh store inside its sandbox container.
-    private func launch(seeding count: Int = 0, openingFirst: Bool = false) {
+    private func launch(seeding count: Int = 0, openingFirst: Bool = false, openingSettings: Bool = false) {
         app = XCUIApplication()
-        let container = NSHomeDirectory() + "/Library/Containers/com.yagyaraj.notic/Data/tmp/uitests"
+        // NSHomeDirectory points inside the test runner's own sandbox.
+        let home = String(cString: getpwuid(getuid())!.pointee.pw_dir)
+        let container = home + "/Library/Containers/com.yagyaraj.notic/Data/tmp/uitests"
         app.launchArguments = ["-NoticDataDirectory", container, "-NoticResetData"]
         if count > 0 {
             app.launchArguments += ["-NoticSeedNotes", String(count)]
         }
         if openingFirst {
             app.launchArguments.append("-NoticOpenSeededNote")
+        }
+        if openingSettings {
+            app.launchArguments.append("-NoticOpenSettings")
         }
         app.launch()
     }
@@ -103,6 +108,8 @@ final class NoticUITests: XCTestCase {
     func testClickingACardOpensItsEditorAndOnlyAnEditorClickActivatesNotic() {
         launch(seeding: 3)
         XCTAssertTrue(pill.waitForExistence(timeout: 5))
+        XCUIApplication(bundleIdentifier: "com.apple.finder").activate()
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 3))
         pill.hover()
         XCTAssertTrue(app.buttons["notic.card.0"].waitForExistence(timeout: 3))
 
@@ -213,6 +220,34 @@ final class NoticUITests: XCTestCase {
     }
 
     // MARK: Settings window
+
+    func testStackPositionMovesDeckAndCardsStillOpen() {
+        launch(seeding: 3, openingSettings: true)
+        let settings = app.windows["notic.settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 3))
+        for position in ["Left", "Bottom", "Right"] {
+            let picker = settings.popUpButtons["notic.settings.stackPosition"]
+            XCTAssertTrue(picker.waitForExistence(timeout: 3))
+            picker.click()
+            app.menuItems[position].click()
+            let frame = app.descendants(matching: .any)["notic.edgePanel"].frame
+            let screen = NSScreen.main!
+            if position == "Left" {
+                XCTAssertEqual(frame.minX, screen.visibleFrame.minX, accuracy: 2)
+            } else if position == "Bottom" {
+                XCTAssertEqual(frame.maxY, screen.frame.maxY - screen.visibleFrame.minY, accuracy: 2)
+                XCTAssertGreaterThan(frame.width, frame.height)
+            } else {
+                XCTAssertEqual(frame.maxX, screen.visibleFrame.maxX, accuracy: 2)
+            }
+            if pill.exists { pill.hover() }
+            let card = app.buttons["notic.card.0"]
+            XCTAssertTrue(card.waitForExistence(timeout: 3))
+            card.click()
+            XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
+            app.buttons["notic.closeEditor"].click()
+        }
+    }
 
     private func openSettings() -> XCUIElement {
         let statusItem = app.statusItems.firstMatch

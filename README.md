@@ -1,7 +1,8 @@
 # Notic
 
 A local-first macOS 14+ menu-bar utility that keeps short-lived notes reachable
-from the right edge of every display. At rest the deck is a column of coloured
+from the selected edge of every display (Settings ▸ General ▸ Deck ▸ Stack position:
+Right, Left, or Bottom). At rest the deck is a row or column of coloured
 dashes, one per note, floating over the desktop. Hover and the notes shingle
 down the edge as colour tabs, each with a vertical label and its own slight
 lean; click one and it slides out level with its tab as a resizable plain-text

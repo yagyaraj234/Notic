@@ -100,6 +100,15 @@ final class EditorPanel: NSPanel, NSWindowDelegate {
 
     /// How far the note travels from the edge as it slides out of its tab.
     private static let travel: CGFloat = 28
+    var edge: ScreenEdge = .right
+
+    private var travelOffset: CGSize {
+        switch edge {
+        case .right: CGSize(width: Self.travel, height: 0)
+        case .left: CGSize(width: -Self.travel, height: 0)
+        case .bottom: CGSize(width: 0, height: -Self.travel)
+        }
+    }
 
     private(set) var isPresenting = false
 
@@ -108,7 +117,10 @@ final class EditorPanel: NSPanel, NSWindowDelegate {
     func present(at frame: CGRect) {
         let reduceMotion = Motion.systemReducesMotion
         var start = frame
-        if !reduceMotion { start.origin.x += Self.travel }
+        if !reduceMotion {
+            start.origin.x += travelOffset.width
+            start.origin.y += travelOffset.height
+        }
         alphaValue = 0
         setFrame(start, display: false)
         orderFrontRegardless()
@@ -127,7 +139,8 @@ final class EditorPanel: NSPanel, NSWindowDelegate {
     func dismiss(completion: @escaping () -> Void) {
         let reduceMotion = Motion.systemReducesMotion
         var end = frame
-        end.origin.x += Self.travel
+        end.origin.x += travelOffset.width
+        end.origin.y += travelOffset.height
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = reduceMotion ? 0.12 : 0.2
             context.timingFunction = Motion.panelExit

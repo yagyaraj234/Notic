@@ -22,7 +22,7 @@ final class DisplayCoordinator {
         self.display = display
         self.workspace = workspace
         self.commands = commands
-        self.geometry = DisplayGeometry(layout: EdgeLayout(visibleFrame: screen.visibleFrame))
+        self.geometry = DisplayGeometry(layout: EdgeLayout(visibleFrame: screen.visibleFrame, edge: workspace.settings.stackPosition))
 
         edgePanel = EdgePanel(
             content: EdgeSurfaceView(workspace: workspace, display: display, geometry: geometry, commands: commands),
@@ -75,7 +75,7 @@ final class DisplayCoordinator {
 
     /// Re-clamps everything after a resolution or arrangement change.
     func screenDidChange(_ screen: NSScreen) {
-        geometry.layout = EdgeLayout(visibleFrame: screen.visibleFrame)
+        geometry.layout = EdgeLayout(visibleFrame: screen.visibleFrame, edge: workspace.settings.stackPosition)
         refreshFrames(animated: false)
     }
 
@@ -119,6 +119,9 @@ final class DisplayCoordinator {
 
     private func apply(_ snapshot: Snapshot) {
         current = snapshot
+        if layout.edge != snapshot.settings.stackPosition {
+            geometry.layout = EdgeLayout(visibleFrame: layout.visibleFrame, edge: snapshot.settings.stackPosition)
+        }
 
         if snapshot.isHidden {
             edgePanel.orderOut(nil)
@@ -274,6 +277,7 @@ final class DisplayCoordinator {
         edgePanel.collectionBehavior = behaviour
         editorPanel?.collectionBehavior = behaviour
         editorPanel?.level = settings.showsAboveAllApps ? .floating : .normal
+        editorPanel?.edge = settings.stackPosition
     }
 }
 

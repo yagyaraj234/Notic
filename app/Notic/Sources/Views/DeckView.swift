@@ -1,6 +1,17 @@
 import NoticCore
 import SwiftUI
 
+/// Keep controls readable while the surrounding stack faces its screen edge.
+private struct StackControlOrientation: ViewModifier {
+    let edge: ScreenEdge
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(x: edge == .left ? -1 : 1, y: 1)
+            .rotationEffect(.degrees(edge == .bottom ? -90 : 0))
+    }
+}
+
 /// Observable holder for one display's geometry so the deck can lay tabs out
 /// with the same shingle step the coordinator sizes the panel with.
 @Observable
@@ -40,6 +51,13 @@ struct DeckView: View {
     }
 
     @State private var drag: Drag?
+    /// The tab the pointer is holding down before it has travelled far enough
+    /// to be a reorder. Drawn pressed, and opened if the pointer lifts here.
+    @State private var pressedID: Note.ID?
+
+    /// How far the pointer must travel before a press on a tab becomes a
+    /// reorder rather than a click.
+    private static let dragSlop: CGFloat = 8
 
     var body: some View {
         let notes = workspace.deckNotes
@@ -52,6 +70,7 @@ struct DeckView: View {
         VStack(alignment: .trailing, spacing: 0) {
             if metrics.tileCount == 0 {
                 emptyPrompt
+                    .modifier(StackControlOrientation(edge: geometry.layout.edge))
                     .frame(height: EdgeLayout.emptyPromptHeight)
             } else {
                 ZStack(alignment: .topTrailing) {
@@ -63,20 +82,22 @@ struct DeckView: View {
                             colorName: NotePalette.name(for: note.color),
                             preview: preview(of: note),
                             visibleLength: visibleLength(at: index, metrics: metrics),
+                            mirrored: geometry.layout.edge == .left,
                             tilt: workspace.settings.tiltsTabs ? NoteTabView.lean(for: note.id, at: index) : 0,
                             isOpen: openID == note.id,
-                            isLifted: dragging
+                            isLifted: dragging,
+                            isPressed: pressedID == note.id
                         ) {
                             workspace.openNote(note.id, on: display)
                         }
-                        .highPriorityGesture(reorderGesture(for: note.id, index: index, notes: notes, metrics: metrics))
+                        .highPriorityGesture(tabGesture(for: note.id, index: index, notes: notes, metrics: metrics))
                         .secondaryClickMenu { commands.dockMenu(note.id) }
                         .offset(y: tabOffset(index: index, dragging: dragging, metrics: metrics))
                         .zIndex(dragging ? 100 : Double(index))
                         .accessibilityIdentifier("notic.card.\(index)")
                     }
                     if workspace.overflowCount > 0 {
-                        OverflowTab(count: workspace.overflowCount, action: commands.showLibrary)
+                        OverflowTab(count: workspace.overflowCount, mirrored: geometry.layout.edge == .left, action: commands.showLibrary)
                             .offset(y: CGFloat(notes.count) * metrics.tabStep)
                             .zIndex(Double(notes.count))
                     }
@@ -86,17 +107,20 @@ struct DeckView: View {
             }
 
             addButton
+                .modifier(StackControlOrientation(edge: geometry.layout.edge))
                 .padding(.top, EdgeLayout.addButtonGap)
                 .padding(.trailing, 10)
 
             if !workspace.pendingDeletions.isEmpty {
                 UndoChip(workspace: workspace)
+                    .modifier(StackControlOrientation(edge: geometry.layout.edge))
                     .frame(height: EdgeLayout.footerRowHeight)
                     .padding(.trailing, 6)
                     .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
             }
             if case .failed = workspace.saveState {
                 SaveStateLabel(state: workspace.saveState, compact: true)
+                    .modifier(StackControlOrientation(edge: geometry.layout.edge))
                     .frame(height: EdgeLayout.footerRowHeight)
                     .padding(.trailing, 12)
                     .transition(.opacity)
@@ -144,17 +168,27 @@ struct DeckView: View {
         return raw
     }
 
-    private func reorderGesture(for id: Note.ID, index: Int, notes: [Note], metrics: EdgeLayout.DeckMetrics) -> some Gesture {
+    /// One gesture for both ways a tab is used. A button's own tap never
+    /// arrives while a drag gesture sits in front of it, so the click is
+    /// recognised here: the press holds the tab, and lifting without having
+    /// travelled `dragSlop` opens the note.
+    private func tabGesture(for id: Note.ID, index: Int, notes: [Note], metrics: EdgeLayout.DeckMetrics) -> some Gesture {
         // Global space: the tab itself moves with the pointer, so its local
         // space would drift under the gesture and halve the translation.
-        DragGesture(minimumDistance: 8, coordinateSpace: .global)
+        DragGesture(minimumDistance: 0, coordinateSpace: .global)
             .onChanged { value in
+                let translation = geometry.layout.edge == .bottom ? -value.translation.width : value.translation.height
                 if drag == nil {
+                    guard abs(translation) > Self.dragSlop else {
+                        pressedID = id
+                        return
+                    }
+                    pressedID = nil
                     drag = Drag(id: id, startIndex: index)
                 }
-                drag?.translation = value.translation.height
+                drag?.translation = translation
                 // Reflow the others as the dragged tab crosses slot midpoints.
-                let raw = CGFloat(drag?.startIndex ?? index) * metrics.tabStep + value.translation.height
+                let raw = CGFloat(drag?.startIndex ?? index) * metrics.tabStep + translation
                 settle(id, near: raw, notes: notes, metrics: metrics)
                 geometry.tabDrag = DisplayGeometry.TabDrag(
                     id: id,
@@ -162,16 +196,23 @@ struct DeckView: View {
                 )
             }
             .onEnded { value in
+                let translation = geometry.layout.edge == .bottom ? -value.translation.width : value.translation.height
+                let velocity = geometry.layout.edge == .bottom ? -value.velocity.width : value.velocity.height
                 defer { geometry.tabDrag = nil }
-                guard let current = drag else { return }
+                pressedID = nil
+                guard let current = drag else {
+                    // Lifted without travelling: a click on the tab.
+                    workspace.openNote(id, on: display)
+                    return
+                }
                 // Land where the throw is going, not where the pointer let go.
                 // Slots are discrete and close together, so use the snappier
                 // deceleration: a brisk flick carries about one slot.
-                let raw = CGFloat(current.startIndex) * metrics.tabStep + value.translation.height
-                let projected = raw + Motion.project(velocity: value.velocity.height, decelerationRate: 0.99)
+                let raw = CGFloat(current.startIndex) * metrics.tabStep + translation
+                let projected = raw + Motion.project(velocity: velocity, decelerationRate: 0.99)
                 let target = settle(id, near: projected, notes: workspace.deckNotes, metrics: metrics)
                 let remaining = CGFloat(target) * metrics.tabStep - tabOffset(index: index, dragging: true, metrics: metrics)
-                let relativeVelocity = abs(remaining) > 0.5 ? Double(value.velocity.height / remaining) : 0
+                let relativeVelocity = abs(remaining) > 0.5 ? Double(velocity / remaining) : 0
                 withAnimation(Motion.handoff(relativeVelocity: relativeVelocity, reduceMotion: reduceMotion)) {
                     drag = nil
                 }
@@ -262,6 +303,7 @@ struct TabLabel: View {
     let swatch: NotePalette.Swatch
     /// Length along the edge available for the label before it is cut off.
     let visibleLength: CGFloat
+    var mirrored = false
 
     var body: some View {
         let labelLength = max(24, visibleLength - 22)
@@ -280,6 +322,7 @@ struct TabLabel: View {
                     )
                 )
                 .rotationEffect(.degrees(-90))
+                .scaleEffect(x: mirrored ? -1 : 1, y: 1)
                 .frame(width: 14, height: labelLength)
                 .padding(.top, 11)
                 .padding(.leading, 14)
@@ -311,10 +354,14 @@ struct NoteTabView: View {
     let colorName: String
     let preview: String
     let visibleLength: CGFloat
+    var mirrored = false
     /// Lean in degrees; positive tips the visible edge downward.
     var tilt: Double = 0
     let isOpen: Bool
     var isLifted = false
+    /// The pointer is holding this tab down. The deck owns the press because
+    /// it owns the gesture that decides between a click and a reorder.
+    var isPressed = false
     let action: () -> Void
 
     /// Tabs run this far past the screen edge so a leaning tab never shows a
@@ -333,39 +380,55 @@ struct NoteTabView: View {
     @State private var hovering = false
 
     var body: some View {
-        Button(action: action) {
-            TabLabel(title: title, swatch: swatch, visibleLength: visibleLength)
-                .frame(width: EdgeLayout.tabWidth + Self.overhang, height: EdgeLayout.tabHeight, alignment: .topLeading)
-                .background(
-                    TabShape()
-                        .fill(swatch.background)
-                        .shadow(color: .black.opacity(isLifted ? 0.32 : 0.22), radius: isLifted ? 12 : 6, x: isLifted ? -6 : -2, y: isLifted ? 8 : 3)
-                )
-                .overlay(TabShape().strokeBorder(EdgeHighlight(), lineWidth: 1))
-                .overlay(TabShape().strokeBorder(swatch.border.opacity(0.5), lineWidth: 0.5))
-                .contentShape(TabShape())
-        }
-        .buttonStyle(PressFeedbackStyle(scale: 0.98))
-        // Lean about the edge the tab hangs from; a lifted or open tab sits straight.
-        .rotationEffect(.degrees(isLifted || isOpen ? 0 : tilt), anchor: .trailing)
-        .offset(x: Self.overhang)
-        // Hint toward the pull-out: the tab eases off the edge under the pointer.
-        .offset(x: hovering && !isOpen && !isLifted && !reduceMotion ? -6 : 0)
-        .scaleEffect(isLifted && !reduceMotion ? 1.04 : 1, anchor: .trailing)
-        .animation(Motion.hover(reduceMotion: reduceMotion), value: hovering)
-        .animation(Motion.settle(reduceMotion: reduceMotion), value: isLifted)
-        .animation(Motion.settle(reduceMotion: reduceMotion), value: isOpen)
-        .onHover { hovering = $0 }
-        .accessibilityLabel("\(title.isEmpty ? "Untitled" : title), \(colorName) note")
-        .accessibilityValue(preview)
-        .accessibilityHint(isOpen ? "Open" : "Opens the note level with its tab")
-        .accessibilityAddTraits(isOpen ? .isSelected : [])
+        surface
+            // Feedback on press, matching PressFeedbackStyle(scale: 0.98).
+            .scaleEffect(isPressed && !isLifted && !reduceMotion ? 0.98 : 1)
+            .opacity(isPressed && !isLifted ? 0.82 : 1)
+            .animation(Motion.press(reduceMotion: reduceMotion), value: isPressed)
+            // Lean about the edge the tab hangs from; a lifted or open tab sits straight.
+            .rotationEffect(.degrees(isLifted || isOpen ? 0 : tilt), anchor: .trailing)
+            .offset(x: Self.overhang)
+            // Hint toward the pull-out: the tab eases off the edge under the pointer.
+            .offset(x: hovering && !isOpen && !isLifted && !reduceMotion ? -6 : 0)
+            .scaleEffect(isLifted && !reduceMotion ? 1.04 : 1, anchor: .trailing)
+            .animation(Motion.hover(reduceMotion: reduceMotion), value: hovering)
+            .animation(Motion.settle(reduceMotion: reduceMotion), value: isLifted)
+            .animation(Motion.settle(reduceMotion: reduceMotion), value: isOpen)
+            .onHover { hovering = $0 }
+            // The deck's gesture drives activation, so the tab is no longer a
+            // button; this keeps it one to assistive technology.
+            .accessibilityElement()
+            .accessibilityAddTraits(traits)
+            .accessibilityAction(.default, action)
+            .accessibilityLabel("\(title.isEmpty ? "Untitled" : title), \(colorName) note")
+            .accessibilityValue(preview)
+            .accessibilityHint(isOpen ? "Open" : "Opens the note level with its tab")
+    }
+
+    private var surface: some View {
+        TabLabel(title: title, swatch: swatch, visibleLength: visibleLength, mirrored: mirrored)
+            .frame(width: EdgeLayout.tabWidth + Self.overhang, height: EdgeLayout.tabHeight, alignment: .topLeading)
+            .background(
+                TabShape()
+                    .fill(swatch.background)
+                    .shadow(color: .black.opacity(isLifted ? 0.32 : 0.22), radius: isLifted ? 12 : 6, x: isLifted ? -6 : -2, y: isLifted ? 8 : 3)
+            )
+            .overlay(TabShape().strokeBorder(EdgeHighlight(), lineWidth: 1))
+            .overlay(TabShape().strokeBorder(swatch.border.opacity(0.5), lineWidth: 0.5))
+            .contentShape(TabShape())
+    }
+
+    private var traits: AccessibilityTraits {
+        var traits: AccessibilityTraits = .isButton
+        if isOpen { traits.insert(.isSelected) }
+        return traits
     }
 }
 
 /// The tab shown when more than eight notes are active.
 struct OverflowTab: View {
     let count: Int
+    var mirrored = false
     let action: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -381,7 +444,7 @@ struct OverflowTab: View {
             destructive: NotePalette.destructive
         )
         Button(action: action) {
-            TabLabel(title: "+\(count) more", swatch: swatch, visibleLength: EdgeLayout.tabHeight)
+            TabLabel(title: "+\(count) more", swatch: swatch, visibleLength: EdgeLayout.tabHeight, mirrored: mirrored)
                 .frame(width: EdgeLayout.tabWidth + NoteTabView.overhang, height: EdgeLayout.tabHeight, alignment: .topLeading)
                 .background(
                     TabShape()

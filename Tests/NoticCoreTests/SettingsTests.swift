@@ -4,6 +4,17 @@ import NoticCore
 
 @Suite("Settings")
 struct SettingsTests {
+    @Test func `stack position defaults right and persists every edge`() throws {
+        let legacy = try JSONDecoder().decode(NoticSettings.self, from: Data("{}".utf8))
+        #expect(legacy.stackPosition == .right)
+        let fixture = try WorkspaceFixture()
+        let workspace = try fixture.launch()
+        for edge in ScreenEdge.allCases {
+            workspace.updateSettings { $0.stackPosition = edge }
+            #expect(try fixture.launch().settings.stackPosition == edge)
+        }
+    }
+
     @Test func `defaults keep Notic out of the Dock, off login, and below other apps`() throws {
         let workspace = try WorkspaceFixture().launch()
 

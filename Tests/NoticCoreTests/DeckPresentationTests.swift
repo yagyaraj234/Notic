@@ -7,7 +7,7 @@ struct DeckPresentationTests {
     let main = DisplayID(rawValue: 1)
     let side = DisplayID(rawValue: 2)
 
-    @Test func `an attached display starts dormant and fans out after 120ms of sustained hover`() throws {
+    @Test func `an attached display starts dormant and fans out after the open delay of sustained hover`() throws {
         let fixture = try WorkspaceFixture()
         let workspace = try fixture.launch()
 
@@ -16,7 +16,7 @@ struct DeckPresentationTests {
         #expect(workspace.deckState(on: main) == .dormant)
 
         workspace.pointerEntered(main)
-        fixture.scheduler.advance(by: 0.119)
+        fixture.scheduler.advance(by: NoticTiming.hoverExpandDelay - 0.001)
         #expect(workspace.deckState(on: main) == .dormant)
 
         fixture.scheduler.advance(by: 0.001)
@@ -53,7 +53,7 @@ struct DeckPresentationTests {
         let workspace = try fixture.launch()
         workspace.attachDisplay(main)
         workspace.pointerEntered(main)
-        fixture.scheduler.advance(by: 0.12)
+        fixture.scheduler.advance(by: NoticTiming.hoverExpandDelay)
 
         workspace.pointerExited(main)
         fixture.scheduler.advance(by: 0.349)
@@ -105,7 +105,7 @@ struct DeckPresentationTests {
         workspace.attachDisplay(main)
         let id = workspace.createNote()
         workspace.pointerEntered(main)
-        fixture.scheduler.advance(by: 0.12)
+        fixture.scheduler.advance(by: NoticTiming.hoverExpandDelay)
         workspace.openNote(id, on: main)
         workspace.updateBody(of: id, to: "closing soon")
 

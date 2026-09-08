@@ -16,6 +16,25 @@ struct EdgeSurfaceView: View {
     @State private var fanned: Bool?
 
     var body: some View {
+        let frame = geometry.layout.deckFrame(
+            noteCount: workspace.deckNotes.count, hasOverflow: workspace.overflowCount > 0,
+            footerRows: footerRows
+        )
+        let bottom = geometry.layout.edge == .bottom
+        surface
+            .frame(width: bottom ? frame.height : frame.width, height: bottom ? frame.width : frame.height)
+            .scaleEffect(x: geometry.layout.edge == .left ? -1 : 1, y: 1)
+            .rotationEffect(.degrees(bottom ? 90 : 0))
+            .frame(width: frame.width, height: frame.height)
+    }
+
+    private var footerRows: Int {
+        var rows = workspace.pendingDeletions.isEmpty ? 0 : 1
+        if case .failed = workspace.saveState { rows += 1 }
+        return rows
+    }
+
+    @ViewBuilder private var surface: some View {
         let target = workspace.deckState(on: display) != .dormant
         let fanned = self.fanned ?? target
         // The pill and the deck are both mounted, both centred on the edge,

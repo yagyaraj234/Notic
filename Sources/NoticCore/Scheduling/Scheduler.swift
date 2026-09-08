@@ -14,8 +14,10 @@ public protocol NoticScheduler: AnyObject {
 
 /// The delays that shape Notic's behaviour, in seconds.
 public nonisolated enum NoticTiming {
-    /// Sustained hover before the dormant pill fans out.
-    public static let hoverExpandDelay: TimeInterval = 0.120
+    /// Sustained hover before the dormant pill fans out. Long enough that a
+    /// pointer crossing the edge on its way somewhere else leaves the deck
+    /// asleep; the Open delay preference tunes it per taste.
+    public static let hoverExpandDelay: TimeInterval = 0.350
     /// Grace period after the pointer leaves before the deck collapses.
     public static let collapseGrace: TimeInterval = 0.350
     /// Trailing debounce after typing stops before an autosave.

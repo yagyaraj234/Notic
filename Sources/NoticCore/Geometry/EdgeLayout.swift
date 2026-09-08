@@ -1,10 +1,11 @@
 import CoreGraphics
 import Foundation
 
-/// The screen edge Notic docks to. Only `.right` ships in version one, but
-/// geometry is expressed against an edge so others can be added later.
-public nonisolated enum ScreenEdge: Sendable {
+/// The screen edge Notic docks to.
+public nonisolated enum ScreenEdge: String, Codable, CaseIterable, Sendable {
     case right
+    case left
+    case bottom
 }
 
 /// Frame arithmetic for one display, in AppKit (bottom-left origin) coordinates.
@@ -57,8 +58,12 @@ public nonisolated struct EdgeLayout: Sendable {
         let height = Self.pillPadding * 2
             + dashes * Self.pillDashHeight
             + (dashes - 1) * Self.pillDashSpacing
+        if edge == .bottom {
+            return CGRect(x: visibleFrame.midX - height / 2, y: visibleFrame.minY,
+                          width: height, height: Self.pillHitWidth)
+        }
         return CGRect(
-            x: visibleFrame.maxX - Self.pillHitWidth,
+            x: edge == .left ? visibleFrame.minX : visibleFrame.maxX - Self.pillHitWidth,
             y: visibleFrame.midY - height / 2,
             width: Self.pillHitWidth,
             height: height
@@ -93,7 +98,7 @@ public nonisolated struct EdgeLayout: Sendable {
     /// `footerRows` counts transient status rows beneath the add button.
     public func deckMetrics(noteCount: Int, hasOverflow: Bool, footerRows: Int = 0) -> DeckMetrics {
         let tiles = noteCount + (hasOverflow ? 1 : 0)
-        let available = visibleFrame.height - Self.screenMargin * 2
+        let available = (edge == .bottom ? visibleFrame.width : visibleFrame.height) - Self.screenMargin * 2
         let fixed = Self.deckPadding * 2 + Self.addButtonGap + Self.addButtonSize
             + CGFloat(footerRows) * Self.footerRowHeight
 
@@ -118,6 +123,12 @@ public nonisolated struct EdgeLayout: Sendable {
         )
         // The deck keeps hugging the edge; only its vertical position is clamped.
         frame.origin.y = clamped(frame).origin.y
+        if edge == .left {
+            frame.origin.x = visibleFrame.minX
+        } else if edge == .bottom {
+            frame = CGRect(x: visibleFrame.midX - height / 2, y: visibleFrame.minY,
+                           width: height, height: Self.deckWidth)
+        }
         return DeckMetrics(frame: frame, tileCount: tiles, tabStep: step)
     }
 
@@ -144,8 +155,9 @@ public nonisolated struct EdgeLayout: Sendable {
         )
         let top = deck.frame.maxY - Self.deckPadding - tabOffsetY
         let frame = CGRect(
-            x: bounds.maxX - fitted.width,
-            y: top - fitted.height,
+            x: edge == .bottom ? deck.frame.maxX - Self.deckPadding - tabOffsetY - fitted.width
+                : edge == .left ? bounds.minX : bounds.maxX - fitted.width,
+            y: edge == .bottom ? bounds.minY : top - fitted.height,
             width: fitted.width,
             height: fitted.height
         )

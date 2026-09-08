@@ -46,7 +46,8 @@ struct SecondaryClickMenu: ViewModifier {
             switch event.type {
             case .rightMouseDown, .rightMouseUp:
                 return super.hitTest(point)
-            case .leftMouseDown, .leftMouseUp where event.modifierFlags.contains(.control):
+            case .leftMouseDown where event.modifierFlags.contains(.control),
+                 .leftMouseUp where event.modifierFlags.contains(.control):
                 return super.hitTest(point)
             default:
                 return nil
