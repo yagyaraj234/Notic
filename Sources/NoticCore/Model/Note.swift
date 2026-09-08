@@ -88,7 +88,7 @@ public nonisolated struct Note: Identifiable, Hashable, Sendable {
 /// Bounds for an expanded note editor, in points.
 public nonisolated enum EditorSizing {
     public static let defaultSize = CGSize(width: 580, height: 420)
-    public static let minimumSize = CGSize(width: 320, height: 220)
+    public static let minimumSize = CGSize(width: 340, height: 240)
     public static let maximumSize = CGSize(width: 1200, height: 900)
 
     /// Clamps a requested size into the allowed range.

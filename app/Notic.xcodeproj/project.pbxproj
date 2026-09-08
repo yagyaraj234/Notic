@@ -17,6 +17,7 @@
 		4D2776428CD19A96653F4ABE /* EdgeSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B592889301F0C346D2C5D89 /* EdgeSurfaceView.swift */; };
 		543EFA11B2A9E4E0CC05355C /* NoteBodyEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8727CCCE7B21EF320FAE43E3 /* NoteBodyEditor.swift */; };
 		5773284081C2C89B17F1630E /* DeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09143CA4147CCC5E40776262 /* DeckView.swift */; };
+		66E19AF32E870384062BB94E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 76357320CEB5C6B500841324 /* Assets.xcassets */; };
 		6CA1829AB30F9FAB45ED9586 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EDE8DE9727C6BE7E563657F /* LibraryView.swift */; };
 		75282CFE811593E23B7690BC /* NoticCore in Frameworks */ = {isa = PBXBuildFile; productRef = 81F1487A69F1EE43B66121BC /* NoticCore */; };
 		7DAA085905BF18C98358FF50 /* FontRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F103F5AF99036AFC2F0DBFC /* FontRegistry.swift */; };
@@ -57,6 +58,7 @@
 		5D141D6B22448AB1042BBB5A /* EditorPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorPanel.swift; sourceTree = "<group>"; };
 		6C6CFE3E198B25455A6EC7B8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6EDE8DE9727C6BE7E563657F /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		76357320CEB5C6B500841324 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		839AB95B37120314034D0B3C /* ObservationToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationToken.swift; sourceTree = "<group>"; };
 		84582972E1AC1F6CB8979FDA /* NotePalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePalette.swift; sourceTree = "<group>"; };
 		8727CCCE7B21EF320FAE43E3 /* NoteBodyEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteBodyEditor.swift; sourceTree = "<group>"; };
@@ -117,6 +119,7 @@
 		7B43603BEC9933D61C9D8D03 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				76357320CEB5C6B500841324 /* Assets.xcassets */,
 				A0C8D084621686E1A38BDDBE /* Fonts */,
 			);
 			path = Resources;
@@ -285,6 +288,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66E19AF32E870384062BB94E /* Assets.xcassets in Resources */,
 				BD8BDDCE2F2AD11835AF9835 /* Fonts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

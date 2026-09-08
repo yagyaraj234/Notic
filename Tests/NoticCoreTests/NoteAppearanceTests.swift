@@ -43,7 +43,7 @@ struct NoteAppearanceTests {
         #expect(workspace.note(id)?.editorSize == CGSize(width: 700, height: 500))
 
         workspace.setEditorSize(of: id, to: CGSize(width: 10, height: 10))
-        #expect(workspace.note(id)?.editorSize == CGSize(width: 320, height: 220))
+        #expect(workspace.note(id)?.editorSize == CGSize(width: 340, height: 240))
 
         workspace.setEditorSize(of: id, to: CGSize(width: 9000, height: 9000))
         #expect(workspace.note(id)?.editorSize == CGSize(width: 1200, height: 900))

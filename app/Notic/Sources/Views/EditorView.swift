@@ -111,54 +111,44 @@ struct EditorView: View {
 
             Spacer(minLength: 8)
 
-            SaveStateLabel(state: workspace.saveState, compact: false)
+            ChromeButton(
+                workspace.settings.showsAboveAllApps ? "Unpin notes" : "Pin notes",
+                systemImage: workspace.settings.showsAboveAllApps ? "pin.fill" : "pin",
+                on: swatch
+            ) {
+                workspace.updateSettings { $0.showsAboveAllApps.toggle() }
+            }
+            .help(workspace.settings.showsAboveAllApps ? "Stop showing notes above all apps" : "Show notes above all apps")
+            .accessibilityValue(workspace.settings.showsAboveAllApps ? "Pinned" : "Not pinned")
+            .accessibilityIdentifier("notic.editor.pin")
+
+            if case .failed = workspace.saveState {
+                SaveStateLabel(state: workspace.saveState, compact: false)
+            }
         }
     }
 
     private func footer(for note: Note, swatch: NotePalette.Swatch) -> some View {
-        let swatches = HStack(spacing: 7) {
+        return HStack(spacing: 7) {
             ForEach(NoteColor.allCases, id: \.self) { color in
                 ColorSwatchButton(color: color, isSelected: color == note.color, ink: swatch.foreground) {
                     workspace.setColor(of: noteID, to: color)
                 }
             }
-            ChromeButton("Add to-do", on: swatch) {
+            ChromeButton("Add to-do", systemImage: "checklist", on: swatch) {
                 NoteBodyEditorBridge.insertTaskInKeyEditor()
             }
             .help("Add a to-do. Type [] and a space, or press ⇧⌘T.")
             .accessibilityHint("Inserts a checkbox on this line, or a new to-do after the current one.")
             .accessibilityIdentifier("notic.editor.addTask")
-        }
-        let actions = HStack(spacing: 8) {
-            ChromeButton("Delete", tint: swatch.destructive, on: swatch) {
+
+            Spacer(minLength: 8)
+
+            ChromeButton("Delete", systemImage: "trash", tint: swatch.destructive, on: swatch) {
                 workspace.delete([noteID])
             }
             .accessibilityHint("Deletes the note. Undo is available for ten seconds.")
             .accessibilityIdentifier("notic.editor.delete")
-            ChromeButton("Mark complete", on: swatch) {
-                workspace.archive([noteID])
-            }
-            .accessibilityHint("Moves the note out of the deck into the archive")
-            .accessibilityIdentifier("notic.editor.archive")
-            ChromeButton("Close", on: swatch) {
-                workspace.closeEditor(on: display)
-            }
-            .accessibilityHint("Closes the editor. The note stays in the deck.")
-        }
-        // One row when the note is wide enough; swatches above the actions otherwise.
-        return ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) {
-                swatches
-                Spacer(minLength: 8)
-                actions
-            }
-            VStack(alignment: .leading, spacing: 10) {
-                swatches
-                HStack {
-                    Spacer(minLength: 0)
-                    actions
-                }
-            }
         }
     }
 
@@ -201,12 +191,14 @@ private struct WindowDot: View {
 /// The compact rounded button used in the editor footer.
 struct ChromeButton: View {
     let title: String
+    let systemImage: String
     var tint: Color?
     let swatch: NotePalette.Swatch
     let action: () -> Void
 
-    init(_ title: String, tint: Color? = nil, on swatch: NotePalette.Swatch, action: @escaping () -> Void) {
+    init(_ title: String, systemImage: String, tint: Color? = nil, on swatch: NotePalette.Swatch, action: @escaping () -> Void) {
         self.title = title
+        self.systemImage = systemImage
         self.tint = tint
         self.swatch = swatch
         self.action = action
@@ -217,11 +209,11 @@ struct ChromeButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.system(size: 11.5, weight: .semibold))
+            Label(title, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(tint ?? swatch.foreground.opacity(0.85))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .frame(width: 24, height: 24)
                 .background(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
                         .fill(swatch.foreground.opacity(hovering ? 0.14 : 0.08))
@@ -276,16 +268,8 @@ struct SaveStateLabel: View {
 
     var body: some View {
         switch state {
-        case .saved:
-            Text("Saved · now")
-                .font(.system(size: 11))
-                .opacity(0.55)
-                .accessibilityIdentifier("notic.saveState.saved")
-        case .unsaved:
-            Text("Saving…")
-                .font(.system(size: 11))
-                .opacity(0.55)
-                .accessibilityIdentifier("notic.saveState.unsaved")
+        case .saved, .unsaved:
+            EmptyView()
         case let .failed(message):
             Group {
                 if compact {

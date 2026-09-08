@@ -115,7 +115,8 @@ final class NoticUITests: XCTestCase {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 3), "Clicking into the editor activates Notic")
 
         editorBody.typeText(" appended")
-        XCTAssertTrue(app.staticTexts["notic.saveState.saved"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["notic.saveState.saved"].exists)
+        XCTAssertFalse(app.staticTexts["notic.saveState.unsaved"].exists)
     }
 
     func testClosingAnEditorKeepsTheNoteInTheDeck() {
@@ -128,6 +129,24 @@ final class NoticUITests: XCTestCase {
         pill.hover()
         XCTAssertTrue(app.buttons["notic.card.0"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["notic.card.1"].exists)
+    }
+
+    func testEditorActionsStayOnOneRowAndPinToggles() {
+        launch(seeding: 1, openingFirst: true)
+        XCTAssertTrue(editorBody.waitForExistence(timeout: 5))
+
+        let addTask = app.buttons["notic.editor.addTask"]
+        let delete = app.buttons["notic.editor.delete"]
+        let pin = app.buttons["notic.editor.pin"]
+        XCTAssertTrue(addTask.exists)
+        XCTAssertTrue(delete.exists)
+        XCTAssertFalse(app.buttons["notic.editor.archive"].exists)
+        XCTAssertEqual(addTask.frame.midY, delete.frame.midY, accuracy: 1)
+        XCTAssertEqual(pin.value as? String, "Not pinned")
+
+        pin.click()
+
+        XCTAssertEqual(pin.value as? String, "Pinned")
     }
 
     // MARK: Overflow and library
