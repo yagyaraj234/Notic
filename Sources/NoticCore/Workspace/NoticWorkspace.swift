@@ -108,10 +108,34 @@ public final class NoticWorkspace {
     public func updateSettings(_ change: (inout NoticSettings) -> Void) {
         var updated = settings
         change(&updated)
+        updated.clampToSupportedValues()
         guard updated != settings else { return }
+        let wasKeepingDeckOpen = settings.keepsDeckOpen
         settings = updated
         settingsDirty = true
+        // The preference has to take effect now, not on the next relaunch.
+        if updated.keepsDeckOpen != wasKeepingDeckOpen {
+            applyKeepsDeckOpen(updated.keepsDeckOpen)
+        }
         persist()
+    }
+
+    /// Fans every resting deck, or releases the decks that were being held
+    /// open. An open editor is never disturbed either way.
+    private func applyKeepsDeckOpen(_ keepsOpen: Bool) {
+        for display in displays.keys {
+            guard var presentation = displays[display] else { continue }
+            if keepsOpen {
+                guard presentation.state == .dormant else { continue }
+                presentation.cancelTimers()
+                presentation.state = .fanned
+                displays[display] = presentation
+            } else {
+                guard presentation.state == .fanned, !presentation.pointerInside else { continue }
+                scheduleCollapse(&presentation, on: display)
+                displays[display] = presentation
+            }
+        }
     }
 
     // MARK: Creating and editing
@@ -150,6 +174,51 @@ public final class NoticWorkspace {
         persist()
     }
 
+    /// Copies a note in place: same title (suffixed "copy"), body, colour and
+    /// editor size, landing directly after its original in the deck order.
+    /// A copy, not a link — editing one never changes the other. Returns `nil`
+    /// for an unknown note or one inside its deletion window.
+    @discardableResult
+    public func duplicateNote(_ id: Note.ID) -> Note.ID? {
+        guard let source = notes[id], !source.lifecycle.isPendingDeletion else { return nil }
+        let now = scheduler.now
+        let copy = Note(
+            title: source.title.isEmpty ? "" : source.title + " copy",
+            body: source.body,
+            color: source.color,
+            sortOrder: source.sortOrder,
+            editorSize: source.editorSize,
+            createdAt: now,
+            modifiedAt: now,
+            lifecycle: source.lifecycle
+        )
+        notes[copy.id] = copy
+        dirtyIDs.insert(copy.id)
+        // Both notes now claim one sort order, so renumber the whole lifecycle
+        // group with the copy placed immediately behind its original.
+        if source.lifecycle == .active {
+            var order = activeNotes.map(\.id)
+            order.removeAll { $0 == copy.id }
+            if let index = order.firstIndex(of: id) {
+                order.insert(copy.id, at: index + 1)
+            } else {
+                order.append(copy.id)
+            }
+            renumber(order)
+        }
+        persist()
+        return copy.id
+    }
+
+    /// Writes `order` back as consecutive sort orders, marking only the notes
+    /// whose position actually moved.
+    private func renumber(_ order: [Note.ID]) {
+        for (position, noteID) in order.enumerated() where notes[noteID]?.sortOrder != position {
+            notes[noteID]?.sortOrder = position
+            dirtyIDs.insert(noteID)
+        }
+    }
+
     /// Records where the user dragged the editor. `nil` docks it to its tab
     /// again. Does not bump `modifiedAt` — moving a note is not an edit.
     public func setEditorOrigin(of id: Note.ID, to origin: CGPoint?) {
@@ -180,10 +249,7 @@ public final class NoticWorkspace {
         guard let from = order.firstIndex(of: id) else { return }
         order.remove(at: from)
         order.insert(id, at: min(max(index, 0), order.count))
-        for (position, noteID) in order.enumerated() where notes[noteID]?.sortOrder != position {
-            notes[noteID]?.sortOrder = position
-            dirtyIDs.insert(noteID)
-        }
+        renumber(order)
         persist()
     }
 
@@ -311,7 +377,11 @@ public final class NoticWorkspace {
     /// Starts presenting a pill on a newly connected display.
     public func attachDisplay(_ display: DisplayID) {
         guard displays[display] == nil else { return }
-        displays[display] = DisplayPresentation()
+        var presentation = DisplayPresentation()
+        if settings.keepsDeckOpen {
+            presentation.state = .fanned
+        }
+        displays[display] = presentation
     }
 
     /// Stops presenting on a display. Any open editor closes and its pending
@@ -330,8 +400,8 @@ public final class NoticWorkspace {
         presentation.pointerInside = true
         presentation.collapseWork?.cancel()
         presentation.collapseWork = nil
-        if presentation.state == .dormant, presentation.expandWork == nil {
-            presentation.expandWork = scheduler.schedule(after: NoticTiming.hoverExpandDelay) { [weak self] in
+        if presentation.state == .dormant, presentation.expandWork == nil, settings.fanTrigger == .hover {
+            presentation.expandWork = scheduler.schedule(after: settings.openDelay) { [weak self] in
                 self?.fanDeck(on: display)
             }
         }
@@ -344,7 +414,7 @@ public final class NoticWorkspace {
         presentation.pointerInside = false
         presentation.expandWork?.cancel()
         presentation.expandWork = nil
-        if presentation.state == .fanned {
+        if presentation.state == .fanned, !settings.keepsDeckOpen {
             scheduleCollapse(&presentation, on: display)
         }
         displays[display] = presentation

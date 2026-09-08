@@ -17,10 +17,49 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
         case adaptive
     }
 
+    /// A multiplier over every duration in Notic's motion vocabulary. It
+    /// scales motion; it never changes which curve is used.
+    public enum AnimationSpeed: String, Codable, Sendable, CaseIterable {
+        case fast
+        case normal
+        case slow
+
+        public var multiplier: Double {
+            switch self {
+            case .fast: 0.6
+            case .normal: 1
+            case .slow: 1.5
+            }
+        }
+    }
+
+    /// What it takes to fan the dock out into the deck.
+    public enum FanTrigger: String, Codable, Sendable, CaseIterable {
+        /// Sustained hover, after `openDelay`.
+        case hover
+        /// Only an explicit click on the dock.
+        case click
+    }
+
+    /// Body text sizes offered for notes, in points.
+    public static let textSizeOptions = [15, 18, 21, 24, 28]
+    /// How long the pointer may be asked to rest on the dock, in seconds.
+    public static let openDelayRange = 0.0...0.6
+    /// The granularity the open-delay slider moves in, in seconds.
+    public static let openDelayStep = 0.02
+
     public var fontChoice: FontChoice = .handwriting
     public var paperStyle: PaperStyle = .pastel
+    /// Body text size in points. Always one of `textSizeOptions`.
+    public var textSize = 21
     /// Tabs in the fanned deck lean a degree or two, like paper tabs do.
     public var tiltsTabs = true
+    /// How long the pointer rests on the dock before the deck fans.
+    public var openDelay = NoticTiming.hoverExpandDelay
+    public var animationSpeed: AnimationSpeed = .normal
+    public var fanTrigger: FanTrigger = .hover
+    /// The deck stays fanned at the edge instead of resting as the dock.
+    public var keepsDeckOpen = false
     public var showsDockIcon = false
     public var launchAtLogin = false
     public var showsAboveAllApps = false
@@ -37,11 +76,29 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
         let defaults = NoticSettings()
         fontChoice = try container.decodeIfPresent(FontChoice.self, forKey: .fontChoice) ?? defaults.fontChoice
         paperStyle = try container.decodeIfPresent(PaperStyle.self, forKey: .paperStyle) ?? defaults.paperStyle
+        textSize = try container.decodeIfPresent(Int.self, forKey: .textSize) ?? defaults.textSize
         tiltsTabs = try container.decodeIfPresent(Bool.self, forKey: .tiltsTabs) ?? defaults.tiltsTabs
+        openDelay = try container.decodeIfPresent(TimeInterval.self, forKey: .openDelay) ?? defaults.openDelay
+        animationSpeed = try container.decodeIfPresent(AnimationSpeed.self, forKey: .animationSpeed) ?? defaults.animationSpeed
+        fanTrigger = try container.decodeIfPresent(FanTrigger.self, forKey: .fanTrigger) ?? defaults.fanTrigger
+        keepsDeckOpen = try container.decodeIfPresent(Bool.self, forKey: .keepsDeckOpen) ?? defaults.keepsDeckOpen
         showsDockIcon = try container.decodeIfPresent(Bool.self, forKey: .showsDockIcon) ?? defaults.showsDockIcon
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? defaults.launchAtLogin
         showsAboveAllApps = try container.decodeIfPresent(Bool.self, forKey: .showsAboveAllApps) ?? defaults.showsAboveAllApps
         visibleOverFullScreenApps = try container.decodeIfPresent(Bool.self, forKey: .visibleOverFullScreenApps) ?? defaults.visibleOverFullScreenApps
         hasCreatedFirstNote = try container.decodeIfPresent(Bool.self, forKey: .hasCreatedFirstNote) ?? defaults.hasCreatedFirstNote
+        // A hand-edited or future-written file must never leave the app in a
+        // state its own controls cannot represent.
+        clampToSupportedValues()
+    }
+
+    /// Snaps the numeric preferences back onto the values Notic supports.
+    public mutating func clampToSupportedValues() {
+        if !Self.textSizeOptions.contains(textSize) {
+            textSize = Self.textSizeOptions.min {
+                (abs($0 - textSize), $0) < (abs($1 - textSize), $1)
+            } ?? 21
+        }
+        openDelay = min(max(openDelay, Self.openDelayRange.lowerBound), Self.openDelayRange.upperBound)
     }
 }

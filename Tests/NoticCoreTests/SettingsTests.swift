@@ -59,6 +59,72 @@ struct SettingsTests {
         #expect(relaunched.settings.launchAtLogin == false)
     }
 
+    @Test func `the new deck and text preferences default to today's behaviour`() throws {
+        let workspace = try WorkspaceFixture().launch()
+
+        #expect(workspace.settings.textSize == 21)
+        #expect(workspace.settings.openDelay == NoticTiming.hoverExpandDelay)
+        #expect(workspace.settings.animationSpeed == .normal)
+        #expect(workspace.settings.fanTrigger == .hover)
+        #expect(workspace.settings.keepsDeckOpen == false)
+    }
+
+    @Test func `the new deck and text preferences are restored after relaunch`() throws {
+        let fixture = try WorkspaceFixture()
+        let workspace = try fixture.launch()
+
+        workspace.updateSettings {
+            $0.textSize = 28
+            $0.openDelay = 0.3
+            $0.animationSpeed = .slow
+            $0.fanTrigger = .click
+            $0.keepsDeckOpen = true
+        }
+
+        let relaunched = try fixture.launch()
+        #expect(relaunched.settings.textSize == 28)
+        #expect(relaunched.settings.openDelay == 0.3)
+        #expect(relaunched.settings.animationSpeed == .slow)
+        #expect(relaunched.settings.fanTrigger == .click)
+        #expect(relaunched.settings.keepsDeckOpen == true)
+    }
+
+    @Test func `a settings file written before the deck preferences existed decodes with their defaults`() throws {
+        let legacy = """
+        {"fontChoice":"system","paperStyle":"adaptive","tiltsTabs":false,"hasCreatedFirstNote":true,"launchAtLogin":false,"showsAboveAllApps":true,"showsDockIcon":false,"visibleOverFullScreenApps":false}
+        """
+        let settings = try JSONDecoder().decode(NoticSettings.self, from: Data(legacy.utf8))
+
+        #expect(settings.paperStyle == .adaptive)
+        #expect(settings.textSize == 21)
+        #expect(settings.openDelay == NoticTiming.hoverExpandDelay)
+        #expect(settings.animationSpeed == .normal)
+        #expect(settings.fanTrigger == .hover)
+        #expect(settings.keepsDeckOpen == false)
+    }
+
+    @Test func `an unsupported text size or out-of-range open delay is clamped on decode`() throws {
+        let hostile = """
+        {"textSize":19,"openDelay":99}
+        """
+        let settings = try JSONDecoder().decode(NoticSettings.self, from: Data(hostile.utf8))
+
+        #expect(settings.textSize == 18)
+        #expect(settings.openDelay == 0.6)
+    }
+
+    @Test func `an unsupported text size or out-of-range open delay is clamped when set`() throws {
+        let workspace = try WorkspaceFixture().launch()
+
+        workspace.updateSettings {
+            $0.textSize = 100
+            $0.openDelay = -5
+        }
+
+        #expect(workspace.settings.textSize == 28)
+        #expect(workspace.settings.openDelay == 0)
+    }
+
     @Test func `a failed settings write is reported and retried like any other save`() throws {
         let fixture = try WorkspaceFixture()
         let (workspace, store) = try fixture.launchWithFailableStore(failingSettings: true)

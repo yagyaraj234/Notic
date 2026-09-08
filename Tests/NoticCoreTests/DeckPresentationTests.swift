@@ -215,4 +215,77 @@ struct DeckPresentationTests {
         workspace.toggleHidden()
         #expect(!workspace.isHidden)
     }
+
+    @Test func `a longer open delay is honoured instead of the default`() throws {
+        let fixture = try WorkspaceFixture()
+        let workspace = try fixture.launch()
+        workspace.updateSettings { $0.openDelay = 0.3 }
+        workspace.attachDisplay(main)
+
+        workspace.pointerEntered(main)
+        fixture.scheduler.advance(by: 0.2)
+        #expect(workspace.deckState(on: main) == .dormant)
+
+        fixture.scheduler.advance(by: 0.1)
+        #expect(workspace.deckState(on: main) == .fanned)
+    }
+
+    @Test func `with the fan trigger set to click, hovering never fans the deck`() throws {
+        let fixture = try WorkspaceFixture()
+        let workspace = try fixture.launch()
+        workspace.updateSettings { $0.fanTrigger = .click }
+        workspace.attachDisplay(main)
+
+        workspace.pointerEntered(main)
+        fixture.scheduler.advance(by: 5)
+        #expect(workspace.deckState(on: main) == .dormant)
+
+        workspace.revealDeck(on: main)
+        #expect(workspace.deckState(on: main) == .fanned)
+    }
+
+    @Test func `keeping the deck open starts a new display fanned and survives pointer exit`() throws {
+        let fixture = try WorkspaceFixture()
+        let workspace = try fixture.launch()
+        workspace.updateSettings { $0.keepsDeckOpen = true }
+
+        workspace.attachDisplay(main)
+        #expect(workspace.deckState(on: main) == .fanned)
+
+        workspace.pointerEntered(main)
+        workspace.pointerExited(main)
+        fixture.scheduler.advance(by: 5)
+        #expect(workspace.deckState(on: main) == .fanned)
+    }
+
+    @Test func `turning keep-the-deck-open on fans an open deck, and turning it off collapses it`() throws {
+        let fixture = try WorkspaceFixture()
+        let workspace = try fixture.launch()
+        workspace.attachDisplay(main)
+        workspace.attachDisplay(side)
+        #expect(workspace.deckState(on: main) == .dormant)
+
+        workspace.updateSettings { $0.keepsDeckOpen = true }
+        #expect(workspace.deckState(on: main) == .fanned)
+        #expect(workspace.deckState(on: side) == .fanned)
+
+        workspace.updateSettings { $0.keepsDeckOpen = false }
+        fixture.scheduler.advance(by: 5)
+        #expect(workspace.deckState(on: main) == .dormant)
+        #expect(workspace.deckState(on: side) == .dormant)
+    }
+
+    @Test func `turning keep-the-deck-open off leaves an open editor alone`() throws {
+        let fixture = try WorkspaceFixture()
+        let workspace = try fixture.launch()
+        workspace.updateSettings { $0.keepsDeckOpen = true }
+        workspace.attachDisplay(main)
+        let id = workspace.createNote()
+        workspace.openNote(id, on: main)
+
+        workspace.updateSettings { $0.keepsDeckOpen = false }
+        fixture.scheduler.advance(by: 5)
+
+        #expect(workspace.deckState(on: main) == .noteOpen(id))
+    }
 }
