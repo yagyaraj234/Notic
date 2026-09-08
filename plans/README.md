@@ -1,4 +1,6 @@
-# Animation plans
+# Plans
+
+`001`–`008` are animation plans. `009` onward are feature plans.
 
 | # | Title | Severity | Status |
 | --- | --- | --- | --- |
@@ -10,9 +12,16 @@
 | 006 | [Ease the editor paper when the swatch changes](006-editor-paper-recolor.md) | LOW | DONE |
 | 007 | [Crossfade the library list when the filter or emptiness changes](007-library-filter-crossfade.md) | LOW | DONE |
 | 008 | [Fan the first-note prompt in with the empty deck](008-first-note-prompt-entrance.md) | LOW | DONE |
+| 009 | [Five new preferences and Duplicate in NoticCore](009-preferences-and-duplicate-in-core.md) | HIGH | DONE |
+| 010 | [Rebuild the settings window with General and About panes](010-settings-window.md) | HIGH | DONE |
+| 011 | [One menu definition behind the dock menu, the quick menu, and the library](011-dock-menu.md) | MEDIUM | DONE |
 
 ## Execution order
 
-Implemented together. Original order was `001` → `002` → `003` → `004` → lows.
+`001`–`008` were implemented together. Original order was `001` → `002` →
+`003` → `004` → lows.
+
+`009` → `010` → `011`. `009` is the state both later plans are surfaces onto,
+so it lands first despite `010` being the visible half of the work.
 
 Run with `improve-animations execute <slug>` or any agent given the plan file.
