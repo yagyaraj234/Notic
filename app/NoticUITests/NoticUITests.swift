@@ -211,4 +211,84 @@ final class NoticUITests: XCTestCase {
         assertEditorIsCentered()
         assertEditorHasTimestampTitle()
     }
+
+    // MARK: Settings window
+
+    private func openSettings() -> XCUIElement {
+        let statusItem = app.statusItems.firstMatch
+        XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
+        statusItem.click()
+        app.menuItems["Settings…"].click()
+        let settings = app.windows["notic.settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 3))
+        return settings
+    }
+
+    func testSettingsHasGeneralAndAboutPanesWithTheDeckControls() {
+        launch()
+        let settings = openSettings()
+
+        XCTAssertTrue(settings.buttons["notic.settings.pane.general"].exists)
+        XCTAssertTrue(settings.buttons["notic.settings.pane.about"].exists)
+
+        for identifier in [
+            "notic.settings.textSize",
+            "notic.settings.openDelay",
+            "notic.settings.fanTrigger",
+            "notic.settings.keepsDeckOpen",
+            "notic.settings.animationSpeed",
+            "notic.settings.launchAtLogin",
+        ] {
+            XCTAssertTrue(
+                settings.descendants(matching: .any)[identifier].waitForExistence(timeout: 2),
+                "Missing settings control \(identifier)"
+            )
+        }
+
+        settings.buttons["notic.settings.pane.about"].click()
+        let version = settings.staticTexts["notic.settings.version"]
+        XCTAssertTrue(version.waitForExistence(timeout: 2))
+        XCTAssertTrue((version.value as? String ?? version.label).hasPrefix("Version"))
+        XCTAssertTrue(settings.links["notic.settings.byline"].exists)
+    }
+
+    func testKeepingTheDeckOpenLeavesTheDeckFannedWithoutHovering() {
+        launch(seeding: 2)
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+
+        let settings = openSettings()
+        settings.checkBoxes["notic.settings.keepsDeckOpen"].click()
+        settings.buttons[XCUIIdentifierCloseWindow].click()
+
+        XCTAssertTrue(deck.waitForExistence(timeout: 3))
+        XCTAssertFalse(pill.exists)
+    }
+
+    // MARK: Dock menu
+
+    func testSecondaryClickingATabShowsTheNoteCommandsAndDuplicatesIt() {
+        launch(seeding: 2)
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+        pill.hover()
+        XCTAssertTrue(deck.waitForExistence(timeout: 3))
+
+        app.buttons["notic.card.0"].rightClick()
+        XCTAssertTrue(app.menuItems["Duplicate"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.menuItems["Color"].exists)
+        XCTAssertTrue(app.menuItems["Archive Note"].exists)
+        app.menuItems["Duplicate"].click()
+
+        XCTAssertTrue(app.buttons["notic.card.2"].waitForExistence(timeout: 3))
+    }
+
+    func testSecondaryClickingTheBareDockShowsOnlyTheApplicationCommands() {
+        launch()
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+
+        pill.rightClick()
+        XCTAssertTrue(app.menuItems["New Note"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.menuItems["Settings…"].exists)
+        XCTAssertFalse(app.menuItems["Duplicate"].exists)
+        XCTAssertFalse(app.menuItems["Delete"].exists)
+    }
 }
