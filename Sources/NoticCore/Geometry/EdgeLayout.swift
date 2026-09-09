@@ -21,7 +21,7 @@ public nonisolated struct EdgeLayout: Sendable {
     // Pill
     /// Width of the drawn stripe.
     public static let pillWidth: CGFloat = 12
-    /// Width of the pointer target that wakes the deck; wider than the stripe.
+    /// Width reserved for the pill's button and artwork.
     public static let pillHitWidth: CGFloat = 16
     public static let pillDashHeight: CGFloat = 22
     public static let pillDashSpacing: CGFloat = 6
@@ -51,21 +51,26 @@ public nonisolated struct EdgeLayout: Sendable {
         self.edge = edge
     }
 
+    public var activationDepth: CGFloat {
+        (edge == .bottom ? visibleFrame.height : visibleFrame.width) * 0.025
+    }
+
     /// The dormant pill's pointer target, hugging the edge and vertically
     /// centred. An empty deck still shows a single placeholder dash.
     public func pillFrame(noteCount: Int) -> CGRect {
+        let hitDepth = activationDepth
         let dashes = CGFloat(max(1, noteCount))
         let height = Self.pillPadding * 2
             + dashes * Self.pillDashHeight
             + (dashes - 1) * Self.pillDashSpacing
         if edge == .bottom {
             return CGRect(x: visibleFrame.midX - height / 2, y: visibleFrame.minY,
-                          width: height, height: Self.pillHitWidth)
+                          width: height, height: hitDepth)
         }
         return CGRect(
-            x: edge == .left ? visibleFrame.minX : visibleFrame.maxX - Self.pillHitWidth,
+            x: edge == .left ? visibleFrame.minX : visibleFrame.maxX - hitDepth,
             y: visibleFrame.midY - height / 2,
-            width: Self.pillHitWidth,
+            width: hitDepth,
             height: height
         )
     }

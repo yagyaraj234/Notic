@@ -89,6 +89,21 @@ final class NoticUITests: XCTestCase {
         XCTAssertEqual(app.state, .runningBackground, "Hovering must never activate Notic")
     }
 
+    func testHoverActivationRequiresTheOuterTwoAndAHalfPercent() throws {
+        let screen = try XCTUnwrap(NSScreen.main)
+        CGWarpMouseCursorPosition(CGPoint(x: screen.frame.midX, y: screen.frame.height / 2))
+        launch(seeding: 3)
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+        let anchor = pill.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+        let card = app.buttons["notic.card.0"]
+        for depth in [0.08, 0.03] {
+            anchor.withOffset(CGVector(dx: -screen.visibleFrame.width * depth, dy: 0)).hover()
+            XCTAssertFalse(card.waitForExistence(timeout: 1))
+        }
+        anchor.withOffset(CGVector(dx: -screen.visibleFrame.width * 0.02, dy: 0)).hover()
+        XCTAssertTrue(card.waitForExistence(timeout: 3))
+    }
+
     func testFirstRunPromptAppearsUntilANoteExists() {
         launch()
         XCTAssertTrue(pill.waitForExistence(timeout: 5))

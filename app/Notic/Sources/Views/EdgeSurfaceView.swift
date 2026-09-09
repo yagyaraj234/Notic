@@ -44,7 +44,8 @@ struct EdgeSurfaceView: View {
         // uncovers it on the way back, and a fan interrupted halfway retargets
         // from where it is rather than restarting.
         ZStack(alignment: .trailing) {
-            PillView(workspace: workspace, display: display, commands: commands)
+            PillView(workspace: workspace, display: display, commands: commands,
+                     hitWidth: geometry.layout.activationDepth)
                 .opacity(fanned ? 0 : 1)
                 .inert(fanned)
 
@@ -83,11 +84,12 @@ private extension View {
 }
 
 /// The resting marker at the right edge of the display: one coloured dash per
-/// note in the deck, floating directly over the desktop with no backing.
+/// note in the deck, sharing a translucent black backing.
 struct PillView: View {
     let workspace: NoticWorkspace
     let display: DisplayID
     let commands: AppCommands
+    let hitWidth: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
@@ -108,11 +110,17 @@ struct PillView: View {
             }
             .padding(.vertical, EdgeLayout.pillPadding)
             .frame(width: EdgeLayout.pillWidth)
+            .background(.black.opacity(0.5), in: UnevenRoundedRectangle(
+                topLeadingRadius: EdgeLayout.pillWidth / 2,
+                bottomLeadingRadius: EdgeLayout.pillWidth / 2,
+                bottomTrailingRadius: 0, topTrailingRadius: 0
+            ))
             // Respond on approach, before the fan delay elapses: the stripe
             // eases off the edge in the direction the deck will come from.
             .offset(x: hovering && !reduceMotion ? -2 : 0)
             .animation(Motion.hover(reduceMotion: reduceMotion), value: hovering)
             .frame(width: EdgeLayout.pillHitWidth, alignment: .trailing)
+            .frame(width: hitWidth, alignment: .trailing)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -123,8 +131,7 @@ struct PillView: View {
         .accessibilityIdentifier("notic.pill")
     }
 
-    /// A soft shadow and hairline keep the pastel readable over light and
-    /// dark wallpaper alike, since nothing sits behind it any more.
+    /// A soft shadow and hairline define each pastel dash.
     private func dash(_ color: Color) -> some View {
         Capsule(style: .continuous)
             .fill(color)

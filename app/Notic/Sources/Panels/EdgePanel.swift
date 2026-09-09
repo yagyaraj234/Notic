@@ -120,6 +120,8 @@ final class HoverTrackingHostingView: NSHostingView<AnyView> {
 
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
+        // Ignore queued entries from the larger tracking area after collapse.
+        guard interactiveRect.contains(convert(window?.mouseLocationOutsideOfEventStream ?? .zero, from: nil)) else { return }
         onEntered()
     }
 

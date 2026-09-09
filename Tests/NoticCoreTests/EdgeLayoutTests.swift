@@ -42,8 +42,27 @@ struct EdgeLayoutTests {
 
         #expect(pill.maxX == 1440)
         #expect(pill.midY == 437.5)
-        #expect(pill.width < 20)
+        #expect(pill.width == 1440 * 0.025)
         #expect(pill.height < 875)
+    }
+
+    @Test func `hover activation is confined to the outer two and a half percent`() {
+        for width: CGFloat in [1280, 1440, 2560] {
+            let screen = CGRect(x: -width, y: 80, width: width, height: 900)
+            for edge in ScreenEdge.allCases {
+                let pill = EdgeLayout(visibleFrame: screen, edge: edge).pillFrame(noteCount: 3)
+                func point(depth: CGFloat) -> CGPoint {
+                    switch edge {
+                    case .right: CGPoint(x: screen.maxX - width * depth, y: pill.midY)
+                    case .left: CGPoint(x: screen.minX + width * depth, y: pill.midY)
+                    case .bottom: CGPoint(x: pill.midX, y: screen.minY + screen.height * depth)
+                    }
+                }
+                #expect(pill.contains(point(depth: 0.02)))
+                #expect(!pill.contains(point(depth: 0.03)))
+                #expect(!pill.contains(point(depth: 0.08)))
+            }
+        }
     }
 
     @Test func `the pill grows one dash per note and never disappears`() {
