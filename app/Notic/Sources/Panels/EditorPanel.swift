@@ -162,6 +162,21 @@ final class EditorPanel: NSPanel, NSWindowDelegate {
         super.sendEvent(event)
     }
 
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if event.charactersIgnoringModifiers?.lowercased() == "z",
+           modifiers == .command || modifiers == [.command, .shift],
+           let editor = firstResponder as? NSTextView {
+            if modifiers.contains(.shift) {
+                editor.undoManager?.redo()
+            } else {
+                editor.undoManager?.undo()
+            }
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
     override func cancelOperation(_ sender: Any?) {
         onClose()
     }

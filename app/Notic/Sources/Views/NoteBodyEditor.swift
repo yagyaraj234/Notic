@@ -16,7 +16,7 @@ struct NoteBodyEditor: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> NSScrollView {
-        let scroll = NSScrollView()
+        let scroll = BodyScrollView()
         scroll.drawsBackground = false
         scroll.hasVerticalScroller = true
         scroll.hasHorizontalScroller = false
@@ -93,15 +93,14 @@ struct NoteBodyEditor: NSViewRepresentable {
         func toggle(at offset: Int) {
             guard let textView else { return }
             let next = TaskMarkup.toggling(lineContaining: offset, in: textView.string)
-            apply(text: next, font: textView.typingFont, ink: textView.ink, notify: true)
+            textView.replaceBody(with: next, cursor: textView.selectedRange().location)
         }
 
         func insertTask() {
             guard let textView else { return }
             let cursor = textView.selectedRange().location
             let result = TaskMarkup.insertingTask(at: cursor, in: textView.string)
-            apply(text: result.text, font: textView.typingFont, ink: textView.ink, notify: true)
-            textView.setSelectedRange(NSRange(location: result.cursor, length: 0))
+            textView.replaceBody(with: result.text, cursor: result.cursor)
         }
 
         func textDidChange(_ notification: Notification) {
@@ -109,15 +108,27 @@ struct NoteBodyEditor: NSViewRepresentable {
             let raw = textView.string
             let cursor = textView.selectedRange().location
             let canonical = TaskMarkup.canonicalized(raw, cursor: cursor)
-            if canonical.text != raw {
-                apply(text: canonical.text, font: textView.typingFont, ink: textView.ink, notify: true)
-                textView.setSelectedRange(NSRange(location: canonical.cursor, length: 0))
+            if canonical.text != raw, textView.undoManager?.isUndoing != true,
+               textView.undoManager?.isRedoing != true {
+                textView.replaceBody(with: canonical.text, cursor: canonical.cursor)
                 return
             }
             textView.applyTaskStyling()
             if raw != lastPosted {
                 lastPosted = raw
                 onChange(raw)
+            }
+        }
+    }
+
+    /// Keep blank space below short notes inside the clickable text view.
+    final class BodyScrollView: NSScrollView {
+        override func tile() {
+            super.tile()
+            guard let textView = documentView as? NSTextView else { return }
+            textView.minSize = contentSize
+            if textView.frame.height < contentSize.height {
+                textView.setFrameSize(NSSize(width: contentSize.width, height: contentSize.height))
             }
         }
     }
@@ -150,17 +161,21 @@ struct NoteBodyEditor: NSViewRepresentable {
             if event.modifierFlags.contains(.command), event.modifierFlags.contains(.shift),
                event.charactersIgnoringModifiers == "t" {
                 let result = TaskMarkup.insertingTask(at: selectedRange().location, in: string)
-                if shouldChangeText(in: NSRange(location: 0, length: (string as NSString).length), replacementString: result.text) {
-                    string = result.text
-                    didChangeText()
-                    setSelectedRange(NSRange(location: result.cursor, length: 0))
-                }
+                replaceBody(with: result.text, cursor: result.cursor)
                 return
             }
             super.keyDown(with: event)
         }
 
+        func replaceBody(with text: String, cursor: Int) {
+            guard text != string else { return }
+            insertText(text, replacementRange: NSRange(location: 0, length: (string as NSString).length))
+            setSelectedRange(NSRange(location: min(cursor, (string as NSString).length), length: 0))
+        }
+
         override func mouseDown(with event: NSEvent) {
+            window?.makeKey()
+            window?.makeFirstResponder(self)
             let point = convert(event.locationInWindow, from: nil)
             if let offset = taskOffset(at: point) {
                 onToggle?(offset)
@@ -308,11 +323,7 @@ enum NoteBodyEditorBridge {
     static func insertTaskInKeyEditor() {
         guard let view = findBodyTextView(in: NSApp.keyWindow?.contentView) else { return }
         let result = TaskMarkup.insertingTask(at: view.selectedRange().location, in: view.string)
-        if view.shouldChangeText(in: NSRange(location: 0, length: (view.string as NSString).length), replacementString: result.text) {
-            view.string = result.text
-            view.didChangeText()
-            view.setSelectedRange(NSRange(location: result.cursor, length: 0))
-        }
+        view.replaceBody(with: result.text, cursor: result.cursor)
         view.window?.makeFirstResponder(view)
     }
 

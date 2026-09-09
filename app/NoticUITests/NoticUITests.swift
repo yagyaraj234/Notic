@@ -121,6 +121,27 @@ final class NoticUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["notic.firstNotePrompt"].exists)
     }
 
+    func testBlankBodyClickAndUndoRedoShortcuts() {
+        launch(seeding: 1, openingFirst: true)
+        XCTAssertTrue(editorBody.waitForExistence(timeout: 5))
+        let original = editorBody.value as? String ?? ""
+        editorBody.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.85)).click()
+        app.typeText(" caret check")
+        let edited = original + " caret check"
+        XCTAssertEqual(editorBody.value as? String, edited)
+        app.typeKey("z", modifierFlags: .command)
+        XCTAssertEqual(editorBody.value as? String, original)
+        app.typeKey("z", modifierFlags: [.command, .shift])
+        XCTAssertEqual(editorBody.value as? String, edited)
+        app.buttons["notic.editor.addTask"].click()
+        let task = editorBody.value as? String
+        XCTAssertNotEqual(task, edited)
+        app.typeKey("z", modifierFlags: .command)
+        XCTAssertEqual(editorBody.value as? String, edited)
+        app.typeKey("z", modifierFlags: [.command, .shift])
+        XCTAssertEqual(editorBody.value as? String, task)
+    }
+
     // MARK: Opening, editing, closing
 
     func testClickingACardOpensItsEditorAndOnlyAnEditorClickActivatesNotic() {
