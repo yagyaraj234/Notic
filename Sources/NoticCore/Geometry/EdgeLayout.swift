@@ -17,6 +17,8 @@ public nonisolated enum ScreenEdge: String, Codable, CaseIterable, Sendable {
 public nonisolated struct EdgeLayout: Sendable {
     public let visibleFrame: CGRect
     public let edge: ScreenEdge
+    /// Normalized center along the edge, measured from the bottom or left.
+    public let position: Double
 
     // Pill
     /// Width of the drawn stripe.
@@ -46,30 +48,46 @@ public nonisolated struct EdgeLayout: Sendable {
     public static let deckWidth: CGFloat = tabWidth + 40
     public static let screenMargin: CGFloat = 8
 
-    public init(visibleFrame: CGRect, edge: ScreenEdge = .right) {
+    public init(visibleFrame: CGRect, edge: ScreenEdge = .right, position: Double = 0.5) {
         self.visibleFrame = visibleFrame
         self.edge = edge
+        self.position = position.isFinite ? min(max(position, 0), 1) : 0.5
+    }
+
+    /// Snap to the nearest supported edge, retaining position along that edge.
+    public func docking(at point: CGPoint) -> EdgeLayout {
+        let distances: [(ScreenEdge, CGFloat)] = [
+            (.left, abs(point.x - visibleFrame.minX)),
+            (.right, abs(point.x - visibleFrame.maxX)),
+            (.bottom, abs(point.y - visibleFrame.minY))
+        ]
+        let edge = distances.min { $0.1 < $1.1 }!.0
+        let position = edge == .bottom
+            ? (point.x - visibleFrame.minX) / max(1, visibleFrame.width)
+            : (point.y - visibleFrame.minY) / max(1, visibleFrame.height)
+        return EdgeLayout(visibleFrame: visibleFrame, edge: edge, position: position)
     }
 
     public var activationDepth: CGFloat {
         (edge == .bottom ? visibleFrame.height : visibleFrame.width) * 0.025
     }
 
-    /// The dormant pill's pointer target, hugging the edge and vertically
-    /// centred. An empty deck still shows a single placeholder dash.
-    public func pillFrame(noteCount: Int) -> CGRect {
+    /// The dormant pill's pointer target, centered on the clamped deck.
+    /// An empty deck still shows a single placeholder dash.
+    public func pillFrame(noteCount: Int, hasOverflow: Bool = false, footerRows: Int = 0) -> CGRect {
+        let deck = deckFrame(noteCount: noteCount, hasOverflow: hasOverflow, footerRows: footerRows)
         let hitDepth = activationDepth
         let dashes = CGFloat(max(1, noteCount))
         let height = Self.pillPadding * 2
             + dashes * Self.pillDashHeight
             + (dashes - 1) * Self.pillDashSpacing
         if edge == .bottom {
-            return CGRect(x: visibleFrame.midX - height / 2, y: visibleFrame.minY,
+            return CGRect(x: deck.midX - height / 2, y: visibleFrame.minY,
                           width: height, height: hitDepth)
         }
         return CGRect(
             x: edge == .left ? visibleFrame.minX : visibleFrame.maxX - hitDepth,
-            y: visibleFrame.midY - height / 2,
+            y: deck.midY - height / 2,
             width: hitDepth,
             height: height
         )
@@ -98,7 +116,7 @@ public nonisolated struct EdgeLayout: Sendable {
     public static let footerRowHeight: CGFloat = 32
 
     /// Lays out the fanned deck for the given number of visible cards,
-    /// vertically centred and kept inside the visible frame. When the
+    /// positioned along the edge and kept inside the visible frame. When the
     /// preferred shingle does not fit, tabs overlap more tightly.
     /// `footerRows` counts transient status rows beneath the add button.
     public func deckMetrics(noteCount: Int, hasOverflow: Bool, footerRows: Int = 0) -> DeckMetrics {
@@ -122,7 +140,7 @@ public nonisolated struct EdgeLayout: Sendable {
         let height = min(fixed + tabsHeight, available)
         var frame = CGRect(
             x: visibleFrame.maxX - Self.deckWidth,
-            y: visibleFrame.midY - height / 2,
+            y: visibleFrame.minY + visibleFrame.height * position - height / 2,
             width: Self.deckWidth,
             height: height
         )
@@ -131,7 +149,8 @@ public nonisolated struct EdgeLayout: Sendable {
         if edge == .left {
             frame.origin.x = visibleFrame.minX
         } else if edge == .bottom {
-            frame = CGRect(x: visibleFrame.midX - height / 2, y: visibleFrame.minY,
+            let x = visibleFrame.minX + visibleFrame.width * position - height / 2
+            frame = CGRect(x: min(max(x, visibleFrame.minX + Self.screenMargin), visibleFrame.maxX - Self.screenMargin - height), y: visibleFrame.minY,
                            width: height, height: Self.deckWidth)
         }
         return DeckMetrics(frame: frame, tileCount: tiles, tabStep: step)

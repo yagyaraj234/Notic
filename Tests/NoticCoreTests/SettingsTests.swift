@@ -17,11 +17,13 @@ struct SettingsTests {
     @Test func `stack position defaults right and persists every edge`() throws {
         let legacy = try JSONDecoder().decode(NoticSettings.self, from: Data("{}".utf8))
         #expect(legacy.stackPosition == .right)
+        #expect(legacy.stackOffset == 0.5)
         let fixture = try WorkspaceFixture()
         let workspace = try fixture.launch()
         for edge in ScreenEdge.allCases {
-            workspace.updateSettings { $0.stackPosition = edge }
+            workspace.updateSettings { $0.stackPosition = edge; $0.stackOffset = 0.8 }
             #expect(try fixture.launch().settings.stackPosition == edge)
+            #expect(try fixture.launch().settings.stackOffset == 0.8)
         }
     }
 

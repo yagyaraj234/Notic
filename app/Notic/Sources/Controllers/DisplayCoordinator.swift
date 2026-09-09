@@ -22,13 +22,41 @@ final class DisplayCoordinator {
         self.display = display
         self.workspace = workspace
         self.commands = commands
-        self.geometry = DisplayGeometry(layout: EdgeLayout(visibleFrame: screen.visibleFrame, edge: workspace.settings.stackPosition))
+        self.geometry = DisplayGeometry(layout: EdgeLayout(visibleFrame: screen.visibleFrame, edge: workspace.settings.stackPosition, position: workspace.settings.stackOffset))
 
         edgePanel = EdgePanel(
             content: EdgeSurfaceView(workspace: workspace, display: display, geometry: geometry, commands: commands),
             onPointerEntered: { workspace.pointerEntered(display) },
             onPointerExited: { workspace.pointerExited(display) }
         )
+        edgePanel.onStackPress = { [weak self] in
+            guard let self else { return }
+            if self.workspace.deckState(on: display) == .dormant {
+                self.workspace.pointerExited(display)
+            } else {
+                self.workspace.pointerEntered(display)
+            }
+        }
+        edgePanel.onStackDrag = { [weak self] point, ended in
+            guard let self else { return }
+            self.geometry.layout = self.layout.docking(at: point)
+            self.refreshFrames(animated: false)
+            if ended {
+                self.workspace.updateSettings {
+                    $0.stackPosition = self.layout.edge
+                    $0.stackOffset = self.layout.position
+                }
+            }
+        }
+        edgePanel.onStackRelease = { [weak self] in
+            guard let self else { return }
+            if self.edgePanel.interactiveFrame.contains(NSEvent.mouseLocation) {
+                self.workspace.pointerEntered(display)
+            } else {
+                self.workspace.pointerExited(display)
+            }
+        }
+        edgePanel.onPillClick = { workspace.revealDeck(on: display) }
         let deck = layout.deckMetrics(noteCount: workspace.deckNotes.count, hasOverflow: workspace.overflowCount > 0)
         edgePanel.setFrame(deck.frame, display: false)
         edgePanel.interactiveFrame = layout.pillFrame(noteCount: workspace.deckNotes.count)
@@ -75,7 +103,7 @@ final class DisplayCoordinator {
 
     /// Re-clamps everything after a resolution or arrangement change.
     func screenDidChange(_ screen: NSScreen) {
-        geometry.layout = EdgeLayout(visibleFrame: screen.visibleFrame, edge: workspace.settings.stackPosition)
+        geometry.layout = EdgeLayout(visibleFrame: screen.visibleFrame, edge: workspace.settings.stackPosition, position: workspace.settings.stackOffset)
         refreshFrames(animated: false)
     }
 
@@ -118,9 +146,10 @@ final class DisplayCoordinator {
     private var current: Snapshot?
 
     private func apply(_ snapshot: Snapshot) {
+        let previousSettings = current?.settings
         current = snapshot
-        if layout.edge != snapshot.settings.stackPosition {
-            geometry.layout = EdgeLayout(visibleFrame: layout.visibleFrame, edge: snapshot.settings.stackPosition)
+        if previousSettings?.stackPosition != snapshot.settings.stackPosition || previousSettings?.stackOffset != snapshot.settings.stackOffset {
+            geometry.layout = EdgeLayout(visibleFrame: layout.visibleFrame, edge: snapshot.settings.stackPosition, position: snapshot.settings.stackOffset)
         }
 
         if snapshot.isHidden {
@@ -235,8 +264,19 @@ final class DisplayCoordinator {
         if !edgePanel.frame.equalTo(deck.frame, within: 1) {
             edgePanel.setFrame(deck.frame, display: true)
         }
+        edgePanel.dragsPill = current.state == .dormant
+        // Leave the add button and footer controls on their normal click path.
+        let controls = EdgeLayout.deckPadding + EdgeLayout.addButtonSize
+            + EdgeLayout.addButtonGap + CGFloat(current.footerRows) * EdgeLayout.footerRowHeight
+        if layout.edge == .bottom {
+            edgePanel.stackDragFrame = CGRect(x: deck.frame.minX + controls, y: deck.frame.minY,
+                                              width: deck.frame.width - controls, height: deck.frame.height)
+        } else {
+            edgePanel.stackDragFrame = CGRect(x: deck.frame.minX, y: deck.frame.minY + controls,
+                                              width: deck.frame.width, height: deck.frame.height - controls)
+        }
         edgePanel.interactiveFrame = current.state == .dormant
-            ? layout.pillFrame(noteCount: current.deckCount)
+            ? layout.pillFrame(noteCount: current.deckCount, hasOverflow: current.hasOverflow, footerRows: current.footerRows)
             : deck.frame
 
         if let editorPanel, !editorPanel.inLiveResize, !editorPanel.isPresenting, !editorPanel.isBeingDragged,

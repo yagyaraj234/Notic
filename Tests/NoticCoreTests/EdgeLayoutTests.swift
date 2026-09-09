@@ -34,6 +34,32 @@ struct EdgeLayoutTests {
         }
     }
 
+    @Test func `dragging selects all edges and clamps pill and deck together`() {
+        let screen = CGRect(x: -1440, y: 80, width: 1440, height: 875)
+        let initial = EdgeLayout(visibleFrame: screen)
+        for (point, edge) in [
+            (CGPoint(x: -1, y: 800), ScreenEdge.right),
+            (CGPoint(x: -1439, y: 300), .left),
+            (CGPoint(x: -600, y: 81), .bottom)
+        ] {
+            let docked = initial.docking(at: point)
+            #expect(docked.edge == edge)
+        }
+        for edge in ScreenEdge.allCases {
+            for position in [0.0, 0.2, 0.8, 1.0] {
+                let moved = EdgeLayout(visibleFrame: screen, edge: edge, position: position)
+                let deck = moved.deckFrame(noteCount: 8, hasOverflow: true, footerRows: 2)
+                let pill = moved.pillFrame(noteCount: 8, hasOverflow: true, footerRows: 2)
+                #expect(screen.contains(deck))
+                #expect(screen.contains(pill))
+                #expect(edge == .bottom ? pill.midX == deck.midX : pill.midY == deck.midY)
+            }
+        }
+        let high = EdgeLayout(visibleFrame: screen, position: 0.8).deckFrame(noteCount: 3, hasOverflow: false)
+        let low = EdgeLayout(visibleFrame: screen, position: 0.2).deckFrame(noteCount: 3, hasOverflow: false)
+        #expect(high.midY > low.midY)
+    }
+
     // A 1440x900 display with a 25pt menu bar, in AppKit coordinates.
     let layout = EdgeLayout(visibleFrame: CGRect(x: 0, y: 0, width: 1440, height: 875))
 

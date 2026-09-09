@@ -74,6 +74,8 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
     public var animationSpeed: AnimationSpeed = .normal
     public var fanTrigger: FanTrigger = .hover
     public var stackPosition: ScreenEdge = .right
+    /// Normalized position along the edge, measured from the bottom or left.
+    public var stackOffset: Double = 0.5
     /// The deck stays fanned at the edge instead of resting as the dock.
     public var keepsDeckOpen = false
     public var showsDockIcon = false
@@ -98,6 +100,7 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
         animationSpeed = try container.decodeIfPresent(AnimationSpeed.self, forKey: .animationSpeed) ?? defaults.animationSpeed
         fanTrigger = try container.decodeIfPresent(FanTrigger.self, forKey: .fanTrigger) ?? defaults.fanTrigger
         stackPosition = try container.decodeIfPresent(ScreenEdge.self, forKey: .stackPosition) ?? defaults.stackPosition
+        stackOffset = try container.decodeIfPresent(Double.self, forKey: .stackOffset) ?? defaults.stackOffset
         keepsDeckOpen = try container.decodeIfPresent(Bool.self, forKey: .keepsDeckOpen) ?? defaults.keepsDeckOpen
         showsDockIcon = try container.decodeIfPresent(Bool.self, forKey: .showsDockIcon) ?? defaults.showsDockIcon
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? defaults.launchAtLogin
@@ -116,6 +119,7 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
                 (abs($0 - textSize), $0) < (abs($1 - textSize), $1)
             } ?? 21
         }
+        stackOffset = stackOffset.isFinite ? min(max(stackOffset, 0), 1) : 0.5
         openDelay = min(max(openDelay, Self.openDelayRange.lowerBound), Self.openDelayRange.upperBound)
     }
 }

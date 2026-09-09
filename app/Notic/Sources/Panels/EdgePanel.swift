@@ -29,6 +29,50 @@ final class EdgePanel: NSPanel {
         contentView = hosting
     }
 
+    var dragsPill = true
+    var stackDragFrame: CGRect = .zero
+    var onStackPress: (() -> Void)?
+    var onStackDrag: ((CGPoint, Bool) -> Void)?
+    var onStackRelease: (() -> Void)?
+    var onPillClick: (() -> Void)?
+    private var pressPoint: CGPoint?
+    private var pressEvent: NSEvent?
+    private var movedStack = false
+    var isTrackingStack: Bool { pressPoint != nil }
+
+    override func sendEvent(_ event: NSEvent) {
+        let point = convertPoint(toScreen: event.locationInWindow)
+        if event.type == .leftMouseDown, event.modifierFlags.intersection([.control, .option]).isEmpty,
+           (dragsPill ? interactiveFrame : stackDragFrame).contains(point) {
+            pressPoint = point
+            pressEvent = event
+            movedStack = false
+            onStackPress?()
+            return
+        }
+        if let start = pressPoint {
+            if event.type == .leftMouseDragged {
+                if hypot(point.x - start.x, point.y - start.y) >= 8 { movedStack = true }
+                if movedStack { onStackDrag?(NSEvent.mouseLocation, false) }
+                return
+            }
+            if event.type == .leftMouseUp {
+                if movedStack { onStackDrag?(NSEvent.mouseLocation, true) }
+                else if dragsPill { onPillClick?() }
+                else if let pressEvent {
+                    super.sendEvent(pressEvent)
+                    super.sendEvent(event)
+                }
+                pressPoint = nil
+                pressEvent = nil
+                onStackRelease?()
+                return
+            }
+            if event.type == .mouseEntered || event.type == .mouseExited { return }
+        }
+        super.sendEvent(event)
+    }
+
     /// The part of the screen the panel answers the pointer over: the dock's
     /// stripe while the deck rests, the whole deck once it is fanned. The
     /// panel itself is always the size of the fanned deck — resizing it as the
@@ -119,6 +163,7 @@ final class HoverTrackingHostingView: NSHostingView<AnyView> {
     }
 
     override func mouseEntered(with event: NSEvent) {
+        guard (window as? EdgePanel)?.isTrackingStack != true else { return }
         super.mouseEntered(with: event)
         // Ignore queued entries from the larger tracking area after collapse.
         guard interactiveRect.contains(convert(window?.mouseLocationOutsideOfEventStream ?? .zero, from: nil)) else { return }
@@ -126,7 +171,10 @@ final class HoverTrackingHostingView: NSHostingView<AnyView> {
     }
 
     override func mouseExited(with event: NSEvent) {
+        guard (window as? EdgePanel)?.isTrackingStack != true else { return }
         super.mouseExited(with: event)
+        // Moving the panel can queue exits from its old tracking area.
+        guard !interactiveRect.contains(convert(window?.mouseLocationOutsideOfEventStream ?? .zero, from: nil)) else { return }
         onExited()
     }
 }

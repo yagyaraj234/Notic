@@ -20,6 +20,9 @@ final class NoticUITests: XCTestCase {
     /// Launches Notic with a fresh store inside its sandbox container.
     private func launch(seeding count: Int = 0, openingFirst: Bool = false, openingSettings: Bool = false) {
         app = XCUIApplication()
+        if let screen = NSScreen.main {
+            CGWarpMouseCursorPosition(CGPoint(x: screen.frame.midX, y: screen.frame.height / 2))
+        }
         // NSHomeDirectory points inside the test runner's own sandbox.
         let home = String(cString: getpwuid(getuid())!.pointee.pw_dir)
         let container = home + "/Library/Containers/com.yagyaraj.notic/Data/tmp/uitests"
@@ -37,7 +40,7 @@ final class NoticUITests: XCTestCase {
     }
 
     private var pill: XCUIElement { app.buttons["notic.pill"] }
-    private var deck: XCUIElement { app.otherElements["notic.deck"] }
+    private var deck: XCUIElement { app.descendants(matching: .any)["notic.deck"] }
     private var editorBody: XCUIElement { app.textViews["notic.editor.body"] }
 
     private func assertEditorIsCentered(file: StaticString = #filePath, line: UInt = #line) {
@@ -262,6 +265,51 @@ final class NoticUITests: XCTestCase {
             XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
             app.buttons["notic.closeEditor"].click()
         }
+    }
+
+    func testDraggingStackMovesVerticallyAndDocksToEveryEdge() throws {
+        launch(seeding: 3)
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+        let screen = try XCTUnwrap(NSScreen.main)
+        let panel = app.descendants(matching: .any)["notic.edgePanel"]
+        let original = panel.frame
+        let start = pill.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -140)))
+        XCTAssertLessThan(panel.frame.midY, original.midY - 70)
+        if pill.exists { pill.hover() }
+        let stack = app.buttons["notic.card.0"]
+        XCTAssertTrue(stack.waitForExistence(timeout: 3))
+        func drag(to point: CGPoint) {
+            if pill.exists { pill.hover() }
+            XCTAssertTrue(stack.waitForExistence(timeout: 3))
+            // Tabs deliberately extend beyond the screen. Grab visible paper.
+            let paper = stack.frame.intersection(panel.frame)
+            XCTAssertFalse(paper.isNull)
+            let from = panel.coordinate(withNormalizedOffset: .zero).withOffset(
+                CGVector(dx: paper.midX - panel.frame.minX, dy: paper.midY - panel.frame.minY)
+            )
+            let destination = from.withOffset(CGVector(dx: point.x - paper.midX, dy: point.y - paper.midY))
+            from.press(forDuration: 0.05, thenDragTo: destination)
+        }
+        drag(to: CGPoint(x: screen.visibleFrame.maxX - 2, y: original.midY + 120))
+        XCTAssertGreaterThan(panel.frame.midY, original.midY + 60)
+        drag(to: CGPoint(x: screen.visibleFrame.minX + 2, y: original.midY))
+        XCTAssertEqual(panel.frame.minX, screen.visibleFrame.minX, accuracy: 2)
+        drag(to: CGPoint(x: screen.visibleFrame.midX, y: screen.frame.maxY - screen.visibleFrame.minY - 30))
+        XCTAssertEqual(panel.frame.maxY, screen.frame.maxY - screen.visibleFrame.minY, accuracy: 2)
+        XCTAssertGreaterThan(panel.frame.width, panel.frame.height)
+        drag(to: CGPoint(x: screen.visibleFrame.maxX - 2, y: original.midY - 100))
+        XCTAssertEqual(panel.frame.maxX, screen.visibleFrame.maxX, accuracy: 2)
+        let saved = panel.frame
+        app.terminate()
+        app.launchArguments = Array(app.launchArguments.prefix(2))
+        app.launch()
+        XCTAssertTrue(panel.waitForExistence(timeout: 5))
+        XCTAssertEqual(panel.frame.midY, saved.midY, accuracy: 2)
+        if pill.exists { pill.hover() }
+        XCTAssertTrue(app.buttons["notic.card.0"].waitForExistence(timeout: 3))
+        app.buttons["notic.card.0"].click()
+        XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
     }
 
     private func openSettings() -> XCUIElement {

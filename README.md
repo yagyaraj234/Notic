@@ -2,7 +2,9 @@
 
 A local-first macOS 14+ menu-bar utility that keeps short-lived notes reachable
 from the selected edge of every display (Settings ▸ General ▸ Deck ▸ Stack position:
-Right, Left, or Bottom). At rest the deck is a row or column of coloured
+Right, Left, or Bottom). Drag the resting pill or the expanded stack directly to
+move the stack up/down or dock it to the left, right, or bottom. Its position
+is remembered after relaunch. Option-drag a note tab to reorder notes. At rest the deck is a row or column of coloured
 dashes, one per note, floating over the desktop. Hover and the notes shingle
 down the edge as colour tabs, each with a vertical label and its own slight
 lean; click one and it slides out level with its tab as a resizable plain-text
