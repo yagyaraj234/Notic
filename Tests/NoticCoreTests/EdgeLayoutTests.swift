@@ -28,8 +28,9 @@ struct EdgeLayoutTests {
             for index in 0..<4 {
                 let editor = layout.editorFrame(size: CGSize(width: 580, height: 420), tabIndex: index, deck: deck)
                 #expect(screen.contains(editor))
-                if edge == .left { #expect(editor.minX == screen.minX + EdgeLayout.screenMargin) }
-                if edge == .bottom { #expect(editor.minY == screen.minY + EdgeLayout.screenMargin) }
+                if edge == .left { #expect(editor.minX == deck.frame.maxX + EdgeLayout.screenMargin) }
+                if edge == .bottom { #expect(editor.minY == deck.frame.maxY + EdgeLayout.screenMargin) }
+                #expect(!editor.intersects(deck.frame))
             }
         }
     }
@@ -136,7 +137,7 @@ struct EdgeLayoutTests {
         let editor = layout.editorFrame(size: CGSize(width: 580, height: 420), tabIndex: 1, deck: metrics)
 
         #expect(editor.size == CGSize(width: 580, height: 420))
-        #expect(editor.maxX == 1440 - EdgeLayout.screenMargin)
+        #expect(editor.maxX == metrics.frame.minX - EdgeLayout.screenMargin)
         // Its top edge lines up with the top of the second tab.
         #expect(editor.maxY == metrics.tabTop(at: 1))
         #expect(editor.minY >= 0)

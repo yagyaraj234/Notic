@@ -176,7 +176,6 @@ final class DisplayCoordinator {
         edgePanel.orderFrontRegardless()
 
         if let presentedEditor {
-            // Slide out of the tab rather than popping into place.
             presentedEditor.present(at: editorTarget(for: snapshot) ?? presentedEditor.frame)
         } else {
             editorPanel?.orderFrontRegardless()
@@ -188,7 +187,7 @@ final class DisplayCoordinator {
         }
     }
 
-    /// Editors leave the way they arrived, then release their panel.
+    /// Hide the previous editor before presenting its replacement.
     private func retire(_ panel: EditorPanel?) {
         guard let panel else { return }
         retiring.insert(panel)
@@ -279,7 +278,7 @@ final class DisplayCoordinator {
             ? layout.pillFrame(noteCount: current.deckCount, hasOverflow: current.hasOverflow, footerRows: current.footerRows)
             : deck.frame
 
-        if let editorPanel, !editorPanel.inLiveResize, !editorPanel.isPresenting, !editorPanel.isBeingDragged,
+        if let editorPanel, !editorPanel.inLiveResize, !editorPanel.isBeingDragged,
            let target = editorTarget(for: current), editorPanel.frame != target {
             let followsDrag = current.editorOrigin == nil
                 && current.openNoteID.flatMap { placedOrigins[$0] } == nil
@@ -317,7 +316,6 @@ final class DisplayCoordinator {
         edgePanel.collectionBehavior = behaviour
         editorPanel?.collectionBehavior = behaviour
         editorPanel?.level = settings.showsAboveAllApps ? .floating : .normal
-        editorPanel?.edge = settings.stackPosition
     }
 }
 

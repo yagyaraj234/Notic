@@ -39,8 +39,8 @@ enum Motion {
 
     /// Critically damped: no overshoot. Use for anything that appears or
     /// re-lays out without a gesture behind it.
-    static func settle(reduceMotion: Bool) -> Animation {
-        reduceMotion ? .easeOut(duration: scaled(0.15)) : .spring(duration: response, bounce: 0)
+    static func settle(reduceMotion: Bool) -> Animation? {
+        reduceMotion ? nil : .spring(duration: response, bounce: 0)
     }
 
     /// Pointer peeks: 2–6pt travel that must finish before the 120ms fan delay.
@@ -53,8 +53,9 @@ enum Motion {
     }
 
     /// Press scale/opacity. 160ms critically damped spring.
-    static func press(reduceMotion: Bool) -> Animation {
-        reduceMotion ? .easeOut(duration: scaled(0.12)) : .spring(duration: scaled(0.16), bounce: 0)
+    static func press(isPressed: Bool, reduceMotion: Bool) -> Animation? {
+        guard isPressed else { return nil }
+        return reduceMotion ? .easeOut(duration: scaled(0.12)) : .spring(duration: scaled(0.16), bounce: 0)
     }
 
     /// Recolour a surface that is already on screen.
@@ -68,8 +69,8 @@ enum Motion {
     /// A spring that continues at the gesture's release velocity. SwiftUI's
     /// interpolating spring takes velocity relative to the remaining
     /// distance, so callers pass `gestureVelocity / (target - current)`.
-    static func handoff(relativeVelocity: Double, reduceMotion: Bool) -> Animation {
-        if reduceMotion { return .easeOut(duration: scaled(0.15)) }
+    static func handoff(relativeVelocity: Double, reduceMotion: Bool) -> Animation? {
+        if reduceMotion { return nil }
         // stiffness 200 / mass 1 is critically damped at ~28.3; 24 is a
         // damping ratio of ~0.85, a little bounce for a thrown tab.
         return .interpolatingSpring(mass: 1, stiffness: 200, damping: 24, initialVelocity: relativeVelocity)
@@ -87,10 +88,8 @@ enum Motion {
         (overshoot * dimension * constant) / (dimension + constant * abs(overshoot))
     }
 
-    /// AppKit editor enter / return-to-tab. Same curve the panel already uses.
+    /// AppKit return-to-tab glide for an editor already on screen.
     static let panelEnter = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
-    /// Inverse of `panelEnter`. Do not restyle — the inverse exit is deliberate.
-    static let panelExit = CAMediaTimingFunction(controlPoints: 0.7, 0, 0.8, 0.1)
 
     /// AppKit-side reduce-motion check for panel-level animation.
     static var systemReducesMotion: Bool {
@@ -99,7 +98,7 @@ enum Motion {
 }
 
 /// Feedback on press, not on release: a small scale and dim the instant the
-/// pointer goes down, springing back when it lifts.
+/// pointer goes down, resetting immediately when it lifts.
 struct PressFeedbackStyle: ButtonStyle {
     var scale: CGFloat = 0.97
 
@@ -109,7 +108,7 @@ struct PressFeedbackStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed && !reduceMotion ? scale : 1)
             .opacity(configuration.isPressed ? 0.82 : 1)
-            .animation(Motion.press(reduceMotion: reduceMotion), value: configuration.isPressed)
+            .animation(Motion.press(isPressed: configuration.isPressed, reduceMotion: reduceMotion), value: configuration.isPressed)
     }
 }
 

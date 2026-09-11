@@ -173,15 +173,17 @@ public nonisolated struct EdgeLayout: Sendable {
     /// dragged so a docked editor can stay level with it.
     public func editorFrame(size: CGSize, tabOffsetY: CGFloat, deck: DeckMetrics) -> CGRect {
         let bounds = visibleFrame.insetBy(dx: Self.screenMargin, dy: Self.screenMargin)
+        // Reserve the floating deck so it cannot cover editor controls.
+        // ponytail: below the minimum editor plus deck size, screen containment wins; collapse the deck if supporting narrower displays.
         let fitted = CGSize(
-            width: min(size.width, max(bounds.width, EditorSizing.minimumSize.width)),
-            height: min(size.height, max(bounds.height, EditorSizing.minimumSize.height))
+            width: min(size.width, max(bounds.width - (edge == .bottom ? 0 : deck.frame.width), EditorSizing.minimumSize.width)),
+            height: min(size.height, max(bounds.height - (edge == .bottom ? deck.frame.height : 0), EditorSizing.minimumSize.height))
         )
         let top = deck.frame.maxY - Self.deckPadding - tabOffsetY
         let frame = CGRect(
             x: edge == .bottom ? deck.frame.maxX - Self.deckPadding - tabOffsetY - fitted.width
-                : edge == .left ? bounds.minX : bounds.maxX - fitted.width,
-            y: edge == .bottom ? bounds.minY : top - fitted.height,
+                : edge == .left ? deck.frame.maxX + Self.screenMargin : deck.frame.minX - Self.screenMargin - fitted.width,
+            y: edge == .bottom ? deck.frame.maxY + Self.screenMargin : top - fitted.height,
             width: fitted.width,
             height: fitted.height
         )

@@ -67,7 +67,9 @@ struct EdgeSurfaceView: View {
                 self.fanned = target
                 return
             }
-            withAnimation(Motion.deck(fanning: target, reduceMotion: reduceMotion)) {
+            // Opening a note also reveals the deck; keep that command immediate.
+            withAnimation(workspace.deckState(on: display).openNoteID == nil
+                          ? Motion.deck(fanning: target, reduceMotion: reduceMotion) : nil) {
                 self.fanned = target
             }
         }

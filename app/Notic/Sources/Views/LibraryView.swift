@@ -126,7 +126,7 @@ struct LibraryView: View {
                 PendingDeletionBanner(workspace: workspace)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 12)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
+                    .transition(reduceMotion ? .opacity.animation(Motion.hover(reduceMotion: true)) : .opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
             }
         }
         .animation(Motion.settle(reduceMotion: reduceMotion), value: workspace.pendingDeletions.isEmpty)

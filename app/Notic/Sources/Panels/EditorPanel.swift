@@ -98,59 +98,16 @@ final class EditorPanel: NSPanel, NSWindowDelegate {
 
     // MARK: Presentation
 
-    /// How far the note travels from the edge as it slides out of its tab.
-    private static let travel: CGFloat = 28
-    var edge: ScreenEdge = .right
-
-    private var travelOffset: CGSize {
-        switch edge {
-        case .right: CGSize(width: Self.travel, height: 0)
-        case .left: CGSize(width: -Self.travel, height: 0)
-        case .bottom: CGSize(width: 0, height: -Self.travel)
-        }
-    }
-
-    private(set) var isPresenting = false
-
-    /// Slides the note out of the edge to `frame`, fading in as it travels.
-    /// Under Reduce Motion it fades in place.
+    /// Opening and closing notes are frequent keyboard actions: present immediately.
     func present(at frame: CGRect) {
-        let reduceMotion = Motion.systemReducesMotion
-        var start = frame
-        if !reduceMotion {
-            start.origin.x += travelOffset.width
-            start.origin.y += travelOffset.height
-        }
-        alphaValue = 0
-        setFrame(start, display: false)
+        alphaValue = 1
+        setFrame(frame, display: false)
         orderFrontRegardless()
-        isPresenting = true
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = reduceMotion ? 0.15 : 0.26
-            context.timingFunction = Motion.panelEnter
-            animator().alphaValue = 1
-            if !reduceMotion { animator().setFrame(frame, display: true) }
-        }, completionHandler: { [weak self] in
-            self?.isPresenting = false
-        })
     }
 
-    /// Returns the note to the edge it came from, then hides the panel.
     func dismiss(completion: @escaping () -> Void) {
-        let reduceMotion = Motion.systemReducesMotion
-        var end = frame
-        end.origin.x += travelOffset.width
-        end.origin.y += travelOffset.height
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = reduceMotion ? 0.12 : 0.2
-            context.timingFunction = Motion.panelExit
-            animator().alphaValue = 0
-            if !reduceMotion { animator().setFrame(end, display: true) }
-        }, completionHandler: { [weak self] in
-            self?.orderOut(nil)
-            self?.alphaValue = 1
-            completion()
-        })
+        orderOut(nil)
+        completion()
     }
 
     /// An explicit click anywhere in the editor is the one interaction that
@@ -159,11 +116,16 @@ final class EditorPanel: NSPanel, NSWindowDelegate {
         if event.type == .leftMouseDown, !NSApp.isActive {
             NSApp.activate()
         }
+        if event.type == .keyDown, handleUndoRedo(event) { return }
         super.sendEvent(event)
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        handleUndoRedo(event) || super.performKeyEquivalent(with: event)
+    }
+
+    private func handleUndoRedo(_ event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection([.command, .shift, .control, .option])
         if event.charactersIgnoringModifiers?.lowercased() == "z",
            modifiers == .command || modifiers == [.command, .shift],
            let editor = firstResponder as? NSTextView {
@@ -174,7 +136,7 @@ final class EditorPanel: NSPanel, NSWindowDelegate {
             }
             return true
         }
-        return super.performKeyEquivalent(with: event)
+        return false
     }
 
     override func cancelOperation(_ sender: Any?) {

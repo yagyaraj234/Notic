@@ -169,8 +169,10 @@ struct NoteBodyEditor: NSViewRepresentable {
 
         func replaceBody(with text: String, cursor: Int) {
             guard text != string else { return }
+            breakUndoCoalescing()
             insertText(text, replacementRange: NSRange(location: 0, length: (string as NSString).length))
             setSelectedRange(NSRange(location: min(cursor, (string as NSString).length), length: 0))
+            breakUndoCoalescing()
         }
 
         override func mouseDown(with event: NSEvent) {

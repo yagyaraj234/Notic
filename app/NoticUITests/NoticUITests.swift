@@ -43,8 +43,43 @@ final class NoticUITests: XCTestCase {
     private var deck: XCUIElement { app.descendants(matching: .any)["notic.deck"] }
     private var editorBody: XCUIElement { app.textViews["notic.editor.body"] }
 
+    // Drive screen coordinates through the app already in front. Targeting a
+    // background Notic element directly makes XCTest activate it before the event.
+    private func pointer(at point: CGPoint) -> XCUICoordinate {
+        let foreground = NSWorkspace.shared.frontmostApplication!.bundleIdentifier!
+        let driver = XCUIApplication(bundleIdentifier: foreground)
+        // Application frames can be infinite (accessory apps) or change as
+        // Finder windows move. The menu bar gives a stable screen anchor.
+        let origin = driver.menuBars.firstMatch.coordinate(withNormalizedOffset: .zero)
+        XCTAssertTrue(origin.screenPoint.x.isFinite && origin.screenPoint.y.isFinite)
+        return origin.withOffset(CGVector(dx: point.x - origin.screenPoint.x, dy: point.y - origin.screenPoint.y))
+    }
+
+    private func movePointer(to point: CGPoint) {
+        pointer(at: point).hover()
+    }
+
+    private func click(_ element: XCUIElement, at offset: CGVector = CGVector(dx: 0.5, dy: 0.5), button: CGMouseButton = .left) {
+        XCTAssertTrue(element.waitForExistence(timeout: 3))
+        let screen = NSScreen.main!.frame
+        let bounds = CGRect(x: screen.minX, y: NSScreen.screens[0].frame.maxY - screen.maxY, width: screen.width, height: screen.height)
+        let visible = element.frame.intersection(bounds)
+        XCTAssertFalse(visible.isNull || visible.isEmpty, "Cannot click an off-screen element")
+        let point = CGPoint(x: visible.minX + visible.width * offset.dx, y: visible.minY + visible.height * offset.dy)
+        if button == .right { pointer(at: point).rightClick() }
+        else { pointer(at: point).click() }
+    }
+
+    private func hoverPill() {
+        movePointer(to: CGPoint(x: pill.frame.midX, y: pill.frame.midY))
+    }
+
+    private func type(_ text: String) {
+        for character in text { app.typeKey(String(character), modifierFlags: []) }
+    }
+
     private func assertEditorIsCentered(file: StaticString = #filePath, line: UInt = #line) {
-        let panel = app.windows["notic.editorPanel"]
+        let panel = app.descendants(matching: .any)["notic.editorPanel"]
         XCTAssertTrue(panel.waitForExistence(timeout: 3), file: file, line: line)
         guard let screen = NSScreen.main else {
             XCTFail("Main screen is unavailable", file: file, line: line)
@@ -85,7 +120,7 @@ final class NoticUITests: XCTestCase {
         launch(seeding: 3)
         XCTAssertTrue(pill.waitForExistence(timeout: 5))
 
-        pill.hover()
+        hoverPill()
 
         XCTAssertTrue(deck.waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["notic.card.0"].exists)
@@ -111,10 +146,10 @@ final class NoticUITests: XCTestCase {
         launch()
         XCTAssertTrue(pill.waitForExistence(timeout: 5))
 
-        pill.hover()
+        hoverPill()
 
         XCTAssertTrue(app.staticTexts["notic.firstNotePrompt"].waitForExistence(timeout: 3))
-        app.buttons["notic.newNote"].click()
+        click(app.buttons["notic.newNote"])
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
         assertEditorIsCentered()
         assertEditorHasTimestampTitle()
@@ -125,19 +160,24 @@ final class NoticUITests: XCTestCase {
         launch(seeding: 1, openingFirst: true)
         XCTAssertTrue(editorBody.waitForExistence(timeout: 5))
         let original = editorBody.value as? String ?? ""
-        editorBody.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.85)).click()
-        app.typeText(" caret check")
+        click(editorBody, at: CGVector(dx: 0.7, dy: 0.85))
+        type(" caret check")
         let edited = original + " caret check"
         XCTAssertEqual(editorBody.value as? String, edited)
         app.typeKey("z", modifierFlags: .command)
         XCTAssertEqual(editorBody.value as? String, original)
         app.typeKey("z", modifierFlags: [.command, .shift])
         XCTAssertEqual(editorBody.value as? String, edited)
+        // Reproduce typing after redo before converting the line to a task.
+        click(editorBody, at: CGVector(dx: 0.7, dy: 0.85))
+        type(" more")
+        let beforeTask = edited + " more"
+        XCTAssertEqual(editorBody.value as? String, beforeTask)
         app.buttons["notic.editor.addTask"].click()
         let task = editorBody.value as? String
-        XCTAssertNotEqual(task, edited)
+        XCTAssertNotEqual(task, beforeTask)
         app.typeKey("z", modifierFlags: .command)
-        XCTAssertEqual(editorBody.value as? String, edited)
+        XCTAssertEqual(editorBody.value as? String, beforeTask)
         app.typeKey("z", modifierFlags: [.command, .shift])
         XCTAssertEqual(editorBody.value as? String, task)
     }
@@ -149,18 +189,19 @@ final class NoticUITests: XCTestCase {
         XCTAssertTrue(pill.waitForExistence(timeout: 5))
         XCUIApplication(bundleIdentifier: "com.apple.finder").activate()
         XCTAssertTrue(app.wait(for: .runningBackground, timeout: 3))
-        pill.hover()
+        hoverPill()
         XCTAssertTrue(app.buttons["notic.card.0"].waitForExistence(timeout: 3))
 
-        app.buttons["notic.card.0"].click()
+        click(app.buttons["notic.card.0"], at: CGVector(dx: 0.5, dy: 0.1))
 
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
         XCTAssertEqual(app.state, .runningBackground, "Opening a note from the deck must not activate Notic")
 
-        editorBody.click()
+        click(editorBody)
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 3), "Clicking into the editor activates Notic")
 
-        editorBody.typeText(" appended")
+        type(" appended")
+        XCTAssertTrue((editorBody.value as? String)?.hasSuffix(" appended") == true)
         XCTAssertFalse(app.staticTexts["notic.saveState.saved"].exists)
         XCTAssertFalse(app.staticTexts["notic.saveState.unsaved"].exists)
     }
@@ -172,9 +213,23 @@ final class NoticUITests: XCTestCase {
         app.buttons["notic.closeEditor"].click()
 
         XCTAssertFalse(editorBody.waitForExistence(timeout: 1))
-        pill.hover()
+        hoverPill()
         XCTAssertTrue(app.buttons["notic.card.0"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["notic.card.1"].exists)
+    }
+
+    func testKeyboardCloseAndEscapeAllowImmediateReopening() {
+        launch(seeding: 1, openingFirst: true)
+        XCTAssertTrue(editorBody.waitForExistence(timeout: 5))
+        click(editorBody)
+        app.typeKey("w", modifierFlags: .command)
+        XCTAssertFalse(editorBody.exists)
+        app.typeKey("n", modifierFlags: [.option, .command])
+        XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
+        app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+        XCTAssertFalse(editorBody.exists)
+        app.typeKey("n", modifierFlags: [.option, .command])
+        XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
     }
 
     func testEditorActionsStayOnOneRowAndPinToggles() {
@@ -190,7 +245,7 @@ final class NoticUITests: XCTestCase {
         XCTAssertEqual(addTask.frame.midY, delete.frame.midY, accuracy: 1)
         XCTAssertEqual(pin.value as? String, "Not pinned")
 
-        pin.click()
+        click(pin)
 
         XCTAssertEqual(pin.value as? String, "Pinned")
     }
@@ -200,7 +255,7 @@ final class NoticUITests: XCTestCase {
     func testMoreThanEightNotesShowsAnOverflowTileThatOpensTheLibrary() {
         launch(seeding: 10)
         XCTAssertTrue(pill.waitForExistence(timeout: 5))
-        pill.hover()
+        hoverPill()
 
         let overflow = app.buttons["notic.overflow"]
         XCTAssertTrue(overflow.waitForExistence(timeout: 3))
@@ -217,13 +272,13 @@ final class NoticUITests: XCTestCase {
         XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
 
         statusItem.click()
-        app.menuItems["All Notes"].click()
+        click(app.menuItems["All Notes…"])
 
         let library = app.windows["All Notes"]
         XCTAssertTrue(library.waitForExistence(timeout: 3))
         let search = library.textFields["notic.library.search"]
         search.click()
-        search.typeText("note 2")
+        type("note 2")
         XCTAssertTrue(library.staticTexts["Seeded note 2"].waitForExistence(timeout: 2))
         XCTAssertFalse(library.staticTexts["Seeded note 1"].exists)
     }
@@ -251,7 +306,7 @@ final class NoticUITests: XCTestCase {
         XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
 
         statusItem.click()
-        app.menuItems["New Note"].click()
+        click(app.menuItems["New Note"])
 
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
         assertEditorIsCentered()
@@ -279,7 +334,7 @@ final class NoticUITests: XCTestCase {
             } else {
                 XCTAssertEqual(frame.maxX, screen.visibleFrame.maxX, accuracy: 2)
             }
-            if pill.exists { pill.hover() }
+            if pill.exists { hoverPill() }
             let card = app.buttons["notic.card.0"]
             XCTAssertTrue(card.waitForExistence(timeout: 3))
             card.click()
@@ -297,11 +352,11 @@ final class NoticUITests: XCTestCase {
         let start = pill.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
         start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -140)))
         XCTAssertLessThan(panel.frame.midY, original.midY - 70)
-        if pill.exists { pill.hover() }
+        if pill.exists { hoverPill() }
         let stack = app.buttons["notic.card.0"]
         XCTAssertTrue(stack.waitForExistence(timeout: 3))
         func drag(to point: CGPoint) {
-            if pill.exists { pill.hover() }
+            if pill.exists { hoverPill() }
             XCTAssertTrue(stack.waitForExistence(timeout: 3))
             // Tabs deliberately extend beyond the screen. Grab visible paper.
             let paper = stack.frame.intersection(panel.frame)
@@ -327,9 +382,9 @@ final class NoticUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(panel.waitForExistence(timeout: 5))
         XCTAssertEqual(panel.frame.midY, saved.midY, accuracy: 2)
-        if pill.exists { pill.hover() }
+        if pill.exists { hoverPill() }
         XCTAssertTrue(app.buttons["notic.card.0"].waitForExistence(timeout: 3))
-        app.buttons["notic.card.0"].click()
+        click(app.buttons["notic.card.0"], at: CGVector(dx: 0.5, dy: 0.1))
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
     }
 
@@ -337,7 +392,7 @@ final class NoticUITests: XCTestCase {
         let statusItem = app.statusItems.firstMatch
         XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
         statusItem.click()
-        app.menuItems["Settings…"].click()
+        click(app.menuItems["Settings…"])
         let settings = app.windows["notic.settings"]
         XCTAssertTrue(settings.waitForExistence(timeout: 3))
         return settings
@@ -388,14 +443,16 @@ final class NoticUITests: XCTestCase {
     func testSecondaryClickingATabShowsTheNoteCommandsAndDuplicatesIt() {
         launch(seeding: 2)
         XCTAssertTrue(pill.waitForExistence(timeout: 5))
-        pill.hover()
+        hoverPill()
         XCTAssertTrue(deck.waitForExistence(timeout: 3))
 
-        app.buttons["notic.card.0"].rightClick()
+        app.activate()
+        click(app.buttons["notic.card.0"], at: CGVector(dx: 0.5, dy: 0.1), button: .right)
         XCTAssertTrue(app.menuItems["Duplicate"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.menuItems["Color"].exists)
         XCTAssertTrue(app.menuItems["Archive Note"].exists)
-        app.menuItems["Duplicate"].click()
+        click(app.menuItems["Duplicate"])
+        if pill.exists { hoverPill() }
 
         XCTAssertTrue(app.buttons["notic.card.2"].waitForExistence(timeout: 3))
     }

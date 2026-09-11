@@ -84,16 +84,13 @@ struct EditorView: View {
     private func header(for note: Note) -> some View {
         let swatch = NotePalette.swatch(for: note.color, paper: workspace.settings.paperStyle)
         return HStack(spacing: 10) {
-            HStack(spacing: 6) {
-                WindowDot(restColor: swatch.foreground.opacity(0.22), hoverColor: Color(red: 1, green: 0.38, blue: 0.35), label: "Close note", hint: "Closes the editor. The note stays in the deck.") {
-                    workspace.closeEditor(on: display)
-                }
-                .keyboardShortcut("w", modifiers: .command)
-                .accessibilityIdentifier("notic.closeEditor")
-                WindowDot(restColor: swatch.foreground.opacity(0.22), hoverColor: Color(red: 1, green: 0.74, blue: 0.2), label: "Mark complete", hint: "Moves the note out of the deck into the archive") {
-                    workspace.archive([noteID])
-                }
+            ChromeButton("Close note", systemImage: "xmark", on: swatch) {
+                workspace.closeEditor(on: display)
             }
+            .help("Close note (⌘W)")
+            .accessibilityHint("Closes the editor. The note stays in the deck.")
+            .keyboardShortcut("w", modifiers: .command)
+            .accessibilityIdentifier("notic.closeEditor")
 
             TextField("Untitled note", text: titleBinding(note))
                 .textFieldStyle(.plain)
@@ -116,8 +113,11 @@ struct EditorView: View {
                 systemImage: workspace.settings.showsAboveAllApps ? "pin.fill" : "pin",
                 on: swatch
             ) {
-                workspace.updateSettings { $0.showsAboveAllApps.toggle() }
+                withAnimation(NSApp.currentEvent?.type == .leftMouseUp ? Motion.hover(reduceMotion: reduceMotion) : nil) {
+                    workspace.updateSettings { $0.showsAboveAllApps.toggle() }
+                }
             }
+            .contentTransition(.opacity)
             .help(workspace.settings.showsAboveAllApps ? "Stop showing notes above all apps" : "Show notes above all apps")
             .accessibilityValue(workspace.settings.showsAboveAllApps ? "Pinned" : "Not pinned")
             .accessibilityIdentifier("notic.editor.pin")
@@ -161,34 +161,7 @@ struct EditorView: View {
 
 }
 
-/// A small circular control in the editor header that colours on hover.
-private struct WindowDot: View {
-    let restColor: Color
-    let hoverColor: Color
-    let label: String
-    let hint: String
-    let action: () -> Void
-
-    @State private var hovering = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        Button(action: action) {
-            Circle()
-                .fill(hovering ? hoverColor : restColor)
-                .frame(width: 9, height: 9)
-                .frame(width: 16, height: 16)
-                .contentShape(Circle())
-        }
-        .buttonStyle(PressFeedbackStyle(scale: 0.85))
-        .animation(Motion.hover(reduceMotion: reduceMotion), value: hovering)
-        .onHover { hovering = $0 }
-        .accessibilityLabel(label)
-        .accessibilityHint(hint)
-    }
-}
-
-/// The compact rounded button used in the editor footer.
+/// A compact icon button shared by the editor header and footer.
 struct ChromeButton: View {
     let title: String
     let systemImage: String

@@ -116,7 +116,7 @@ struct DeckView: View {
                     .modifier(StackControlOrientation(edge: geometry.layout.edge))
                     .frame(height: EdgeLayout.footerRowHeight)
                     .padding(.trailing, 6)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
+                    .transition(reduceMotion ? .opacity.animation(Motion.hover(reduceMotion: true)) : .opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
             }
             if case .failed = workspace.saveState {
                 SaveStateLabel(state: workspace.saveState, compact: true)
@@ -384,9 +384,9 @@ struct NoteTabView: View {
             // Feedback on press, matching PressFeedbackStyle(scale: 0.98).
             .scaleEffect(isPressed && !isLifted && !reduceMotion ? 0.98 : 1)
             .opacity(isPressed && !isLifted ? 0.82 : 1)
-            .animation(Motion.press(reduceMotion: reduceMotion), value: isPressed)
+            .animation(Motion.press(isPressed: isPressed, reduceMotion: reduceMotion), value: isPressed)
             // Lean about the edge the tab hangs from; a lifted or open tab sits straight.
-            .rotationEffect(.degrees(isLifted || isOpen ? 0 : tilt), anchor: .trailing)
+            .rotationEffect(.degrees(reduceMotion || isLifted || isOpen ? 0 : tilt), anchor: .trailing)
             .offset(x: Self.overhang)
             // Hint toward the pull-out: the tab eases off the edge under the pointer.
             .offset(x: hovering && !isOpen && !isLifted && !reduceMotion ? -6 : 0)
