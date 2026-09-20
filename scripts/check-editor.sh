@@ -27,6 +27,7 @@ var posted = ""
 let coordinator = NoteBodyEditor.Coordinator { posted = $0 }
 coordinator.textView = body
 body.delegate = coordinator
+body.onToggle = { coordinator.toggle(at: $0) }
 coordinator.apply(text: "hello", font: .systemFont(ofSize: 21), ink: .black, notify: false)
 let undo = body.undoManager!
 undo.groupsByEvent = false
@@ -72,6 +73,28 @@ assert(body.string.isEmpty)
 window.sendEvent(key([.command, .shift]))
 assert(body.string == "routing")
 print("PASS: panel key equivalents, Caps Lock, direct key-event undo/redo")
+coordinator.apply(text: "- [ ] Buy milk\n- [x] Call home", font: .systemFont(ofSize: 21), ink: .black, notify: false)
+let boxes = body.accessibilityChildren()!.compactMap { $0 as? NoteBodyEditor.BodyTextView.TaskCheckbox }
+assert(boxes.count == 2)
+assert(boxes[0].accessibilityLabel() == "Buy milk")
+assert((boxes[0].accessibilityValue() as? Int) == 0)
+assert((boxes[1].accessibilityValue() as? Int) == 1)
+edit { assert(boxes[0].accessibilityPerformPress()) }
+assert(body.string.hasPrefix("- [x] Buy milk"))
+assert((boxes[0].accessibilityValue() as? Int) == 1)
+undo.undo(); assert(body.string.hasPrefix("- [ ] Buy milk"))
+body.setSelectedRange(NSRange(location: 8, length: 0))
+let toggleKey = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: .command,
+    timestamp: 0, windowNumber: window.windowNumber, context: nil,
+    characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36)!
+edit { window.sendEvent(toggleKey) }
+assert(body.string.hasPrefix("- [x] Buy milk"))
+coordinator.apply(text: "plain text", font: .systemFont(ofSize: 21), ink: .black, notify: false)
+assert(body.accessibilityChildren()!.compactMap { $0 as? NoteBodyEditor.BodyTextView.TaskCheckbox }.isEmpty)
+assert(!boxes[0].accessibilityPerformPress())
+edit { window.sendEvent(toggleKey) }
+assert(body.string == "plain text")
+print("PASS: accessible task labels/state/press/undo, Command-Return, stale control and plain-line safety")
 SWIFT
 build_dir=$(swift build --show-bin-path)
 swiftc -swift-version 6 -default-isolation MainActor \

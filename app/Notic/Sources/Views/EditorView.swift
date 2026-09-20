@@ -109,7 +109,7 @@ struct EditorView: View {
             Spacer(minLength: 8)
 
             ChromeButton(
-                workspace.settings.showsAboveAllApps ? "Unpin notes" : "Pin notes",
+                workspace.settings.showsAboveAllApps ? "Unpin all notes" : "Pin all notes",
                 systemImage: workspace.settings.showsAboveAllApps ? "pin.fill" : "pin",
                 on: swatch
             ) {
@@ -118,7 +118,7 @@ struct EditorView: View {
                 }
             }
             .contentTransition(.opacity)
-            .help(workspace.settings.showsAboveAllApps ? "Stop showing notes above all apps" : "Show notes above all apps")
+            .help(workspace.settings.showsAboveAllApps ? "Stop keeping all notes above other apps" : "Keep all notes above other apps")
             .accessibilityValue(workspace.settings.showsAboveAllApps ? "Pinned" : "Not pinned")
             .accessibilityIdentifier("notic.editor.pin")
 
@@ -138,7 +138,7 @@ struct EditorView: View {
             ChromeButton("Add to-do", systemImage: "checklist", on: swatch) {
                 NoteBodyEditorBridge.insertTaskInKeyEditor()
             }
-            .help("Add a to-do. Type [] and a space, or press ⇧⌘T.")
+            .help("Add a to-do. Type [] and a space, or press ⇧⌘T. Toggle current to-do with ⌘Return.")
             .accessibilityHint("Inserts a checkbox on this line, or a new to-do after the current one.")
             .accessibilityIdentifier("notic.editor.addTask")
 

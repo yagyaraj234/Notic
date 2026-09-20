@@ -172,16 +172,23 @@ struct LibraryView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            if !model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Button("Clear search") { model.query = "" }
+                    .accessibilityIdentifier("notic.library.clearSearch")
+            } else if model.filter != .archived {
+                Button("New Note") { commands.newNote(nil) }
+                    .accessibilityIdentifier("notic.library.newNote")
+            }
             Spacer()
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 24)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("notic.library.empty")
     }
 
     private var emptyTitle: String {
-        if !model.query.trimmingCharacters(in: .whitespaces).isEmpty { return "No matches" }
+        if !model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "No matches" }
         switch model.filter {
         case .archived: return "Nothing archived"
         case .active: return "No active notes"
@@ -190,7 +197,7 @@ struct LibraryView: View {
     }
 
     private var emptyDetail: String {
-        if !model.query.trimmingCharacters(in: .whitespaces).isEmpty {
+        if !model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Nothing matches “\(model.query)”."
         }
         switch model.filter {
@@ -250,51 +257,54 @@ struct LibraryView: View {
     }
 
     private func detailHeader(targets: [Note], focused: Note?) -> some View {
-        let canArchive = targets.contains { $0.lifecycle == .active }
-        let canRestore = targets.contains { $0.lifecycle == .archived }
+        let active = targets.filter { $0.lifecycle == .active }.map(\.id)
+        let archived = targets.filter { $0.lifecycle == .archived }.map(\.id)
         let openable = focused.flatMap { $0.lifecycle == .active ? $0 : nil }
-        return HStack(spacing: 8) {
+        return VStack(alignment: .leading, spacing: 8) {
             if let focused {
-                Circle()
-                    .fill(NotePalette.swatch(for: focused.color, paper: workspace.settings.paperStyle).paper)
-                    .frame(width: 8, height: 8)
-                Text(statusText(for: focused, count: targets.count))
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.1)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-            Spacer(minLength: 8)
-            PaneButton("Open") {
-                if let openable { openNote(openable.id) }
-            }
-            .disabled(openable == nil || targets.count > 1)
-            .keyboardShortcut(.defaultAction)
-            .accessibilityHint("Opens the selected active note beside the deck")
-            .accessibilityIdentifier("notic.library.open")
-            if canRestore, !canArchive {
-                PaneButton("Restore") {
-                    withAnimation(Motion.hover(reduceMotion: reduceMotion)) {
-                        workspace.restore(targets.filter { $0.lifecycle == .archived }.map(\.id))
-                    }
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(NotePalette.swatch(for: focused.color, paper: workspace.settings.paperStyle).paper)
+                        .frame(width: 8, height: 8)
+                    Text(statusText(for: focused, count: targets.count))
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.1)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
-                .accessibilityIdentifier("notic.library.restore")
-            } else {
-                PaneButton("Mark complete") {
-                    withAnimation(Motion.hover(reduceMotion: reduceMotion)) {
-                        workspace.archive(targets.filter { $0.lifecycle == .active }.map(\.id))
-                    }
+            }
+            HStack(spacing: 8) {
+                PaneButton("Open") {
+                    if let openable { openNote(openable.id) }
                 }
-                .disabled(!canArchive)
-                .accessibilityIdentifier("notic.library.archive")
+                .disabled(openable == nil || targets.count > 1)
+                .keyboardShortcut(.defaultAction)
+                .accessibilityHint("Opens the selected active note beside the deck")
+                .accessibilityIdentifier("notic.library.open")
+                if !archived.isEmpty {
+                    PaneButton(targets.count > 1 ? "Restore (\(archived.count))" : "Restore") {
+                        withAnimation(Motion.hover(reduceMotion: reduceMotion)) {
+                            workspace.restore(archived)
+                        }
+                    }
+                    .accessibilityIdentifier("notic.library.restore")
+                }
+                if !active.isEmpty {
+                    PaneButton(targets.count > 1 ? "Archive (\(active.count))" : "Archive") {
+                        withAnimation(Motion.hover(reduceMotion: reduceMotion)) {
+                            workspace.archive(active)
+                        }
+                    }
+                    .accessibilityIdentifier("notic.library.archive")
+                }
+                PaneButton("Delete", tint: NotePalette.destructive) {
+                    workspace.delete(targets.map(\.id))
+                    model.selection = []
+                }
+                .disabled(targets.isEmpty)
+                .keyboardShortcut(.delete, modifiers: .command)
+                .accessibilityIdentifier("notic.library.delete")
             }
-            PaneButton("Delete", tint: NotePalette.destructive) {
-                workspace.delete(targets.map(\.id))
-                model.selection = []
-            }
-            .disabled(targets.isEmpty)
-            .keyboardShortcut(.delete, modifiers: .command)
-            .accessibilityIdentifier("notic.library.delete")
         }
     }
 

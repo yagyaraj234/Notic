@@ -11,7 +11,8 @@ lean; click one and it slides out level with its tab as a resizable plain-text
 editor. Drag the editor by its tab strip or header to move it anywhere;
 double-click the header to send it back beside its tab. Type `[] ` at the
 start of a line (or press ⇧⌘T / Add to-do) for a checkbox to-do; click the
-box to mark it done. Notes come in
+box to mark it done, or press ⌘Return on its line. Each task exposes an accessible
+checkbox with its label and checked state. Notes come in
 eight pastel colours that stay light in dark mode by default (Settings ▸ Paper
 switches to darker paper that matches the appearance; the lean can be turned
 off there too). Everything is managed in a searchable two-pane library. No
@@ -93,8 +94,9 @@ above all apps* preference applies to expanded editors.
 - Notes are not encrypted by Notic; the sandbox, your macOS account, and
   FileVault protect default storage; custom folders use their filesystem permissions.
   Back up your selected notes folder and the settings directory (or rely on
-  Time Machine) — deleting a note permanently removes it from the store ten
-  seconds after the Undo window closes.
+  Time Machine) — deleting a note permanently removes it from the store after
+  the ten-second Undo window closes. Undo is available in the deck, library,
+  and menu bar; the deck and library show time until the next deletion expires.
 - To uninstall: quit Notic, turn off *Launch at Login* in Settings if you enabled
   it, move `Notic.app` to the Trash, and delete the container folder above. Custom libraries and old backups remain in their chosen folders.
 

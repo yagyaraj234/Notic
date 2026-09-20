@@ -36,12 +36,19 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menus.populate(menu, forNote: nil, includeOpen: false)
     }
 
+    func refreshStatus() { showSaveState(workspace.saveState) }
+
     private func showSaveState(_ state: SaveState) {
         guard let button = statusItem.button else { return }
         if case let .failed(message) = state {
             button.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "Notic, couldn't save")
             button.toolTip = "Notic couldn't save: \(message). Retrying automatically."
             button.setAccessibilityLabel("Notic, couldn't save, retrying")
+        } else if !menus.failedShortcuts.isEmpty {
+            let shortcuts = menus.failedShortcuts.map(\.displayName).joined(separator: ", ")
+            button.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "Notic, shortcut unavailable")
+            button.toolTip = "Shortcuts unavailable: \(shortcuts). Open this menu to use their actions."
+            button.setAccessibilityLabel("Notic, shortcut unavailable. Open menu for actions.")
         } else {
             button.image = NSImage(systemSymbolName: "note.text", accessibilityDescription: "Notic")
             button.toolTip = nil

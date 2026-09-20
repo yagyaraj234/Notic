@@ -86,6 +86,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeys?.register(.showArchive, action: commands.showArchive)
         hotKeys?.register(.toggleHidden, action: commands.toggleHidden)
 
+        menus.failedShortcuts = hotKeys?.failedShortcuts ?? []
+        menuBar?.refreshStatus()
+
         settingsObservation = ObservationToken.track({ workspace.settings }) { [weak self] settings in
             self?.apply(settings)
         }

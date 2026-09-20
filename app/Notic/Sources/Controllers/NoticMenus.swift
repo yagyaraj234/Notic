@@ -13,6 +13,7 @@ final class NoticMenus: NSObject {
     private let commands: AppCommands
     /// Set by the library so its row menu can open a note in place.
     var openNote: ((Note.ID) -> Void)?
+    var failedShortcuts: [HotKeyCenter.Shortcut] = []
 
     init(workspace: NoticWorkspace, commands: AppCommands) {
         self.workspace = workspace
@@ -53,6 +54,15 @@ final class NoticMenus: NSObject {
             appendNoteItems(to: menu, note: note, includeOpen: includeOpen)
             menu.addItem(.separator())
         }
+        if !workspace.pendingDeletions.isEmpty {
+            menu.addItem(item("Undo Delete", #selector(undoPendingDeletes)))
+            menu.addItem(.separator())
+        }
+        for shortcut in failedShortcuts {
+            let warning = NSMenuItem(title: "\(shortcut.displayName) unavailable — use \(shortcut.actionName) below", action: nil, keyEquivalent: "")
+            warning.isEnabled = false
+            menu.addItem(warning)
+        }
         menu.addItem(item("New Note", #selector(newNote), shortcut: .newNote))
         menu.addItem(.separator())
         menu.addItem(item("All Notes…", #selector(showLibrary), shortcut: .showLibrary))
@@ -92,7 +102,7 @@ final class NoticMenus: NSObject {
 
         switch note.lifecycle {
         case .active:
-            menu.addItem(item("Archive Note", #selector(archive(_:)), note: id))
+            menu.addItem(item("Archive", #selector(archive(_:)), note: id))
         case .archived:
             menu.addItem(item("Restore Note", #selector(restore(_:)), note: id))
         case .pendingDeletion:
@@ -194,6 +204,8 @@ final class NoticMenus: NSObject {
         guard let choice = (sender as? NSMenuItem)?.representedObject as? ColorChoice else { return }
         workspace.setColor(of: choice.note, to: choice.color)
     }
+
+    @objc private func undoPendingDeletes() { workspace.undoDelete(workspace.pendingDeletions.map(\.id)) }
 
     @objc private func newNote() { commands.newNote(nil) }
     @objc private func showLibrary() { commands.showLibrary() }

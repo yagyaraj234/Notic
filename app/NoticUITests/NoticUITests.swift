@@ -450,7 +450,7 @@ final class NoticUITests: XCTestCase {
         click(app.buttons["notic.card.0"], at: CGVector(dx: 0.5, dy: 0.1), button: .right)
         XCTAssertTrue(app.menuItems["Duplicate"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.menuItems["Color"].exists)
-        XCTAssertTrue(app.menuItems["Archive Note"].exists)
+        XCTAssertTrue(app.menuItems["Archive"].exists)
         click(app.menuItems["Duplicate"])
         if pill.exists { hoverPill() }
 

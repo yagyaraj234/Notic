@@ -10,6 +10,24 @@ final class HotKeyCenter {
         case showArchive
         case toggleHidden
 
+        var displayName: String {
+            switch self {
+            case .newNote: "⌥⌘N"
+            case .showLibrary: "⌥⌘L"
+            case .showArchive: "⌥⌘A"
+            case .toggleHidden: "⌃⌥⌘H"
+            }
+        }
+
+        var actionName: String {
+            switch self {
+            case .newNote: "New Note"
+            case .showLibrary: "All Notes"
+            case .showArchive: "Show Archive"
+            case .toggleHidden: "Hide/Show Notic"
+            }
+        }
+
         var keyCode: UInt32 {
             switch self {
             case .newNote: UInt32(kVK_ANSI_N)
@@ -39,6 +57,7 @@ final class HotKeyCenter {
 
     private static let signature: OSType = 0x4E54_4943 // "NTIC"
 
+    private(set) var failedShortcuts: [Shortcut] = []
     private var actions: [UInt32: () -> Void] = [:]
     private var registrations: [EventHotKeyRef] = []
     private var handler: EventHandlerRef?
@@ -60,8 +79,11 @@ final class HotKeyCenter {
         var reference: EventHotKeyRef?
         let id = EventHotKeyID(signature: Self.signature, id: shortcut.rawValue)
         let status = RegisterEventHotKey(shortcut.keyCode, shortcut.carbonModifiers, id, GetApplicationEventTarget(), 0, &reference)
-        if status == noErr, let reference {
+        if status == noErr, let reference, handler != nil {
             registrations.append(reference)
+        } else {
+            if let reference { UnregisterEventHotKey(reference) }
+            failedShortcuts.append(shortcut)
         }
     }
 

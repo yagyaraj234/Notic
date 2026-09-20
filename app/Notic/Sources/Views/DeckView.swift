@@ -475,7 +475,10 @@ struct UndoChip: View {
         Button {
             workspace.undoDelete(pending.map(\.id))
         } label: {
-            Label("Undo", systemImage: "arrow.uturn.backward")
+            HStack(spacing: 4) {
+                Label("Undo", systemImage: "arrow.uturn.backward")
+                DeletionCountdown(notes: pending)
+            }
                 .font(.system(size: 11, weight: .semibold))
                 .labelStyle(.titleAndIcon)
                 .padding(.horizontal, 10)
@@ -500,6 +503,7 @@ struct PendingDeletionBanner: View {
         HStack {
             Text(pending.count == 1 ? "Note deleted" : "\(pending.count) notes deleted")
                 .font(.callout)
+            DeletionCountdown(notes: pending)
             Spacer()
             Button("Undo") {
                 workspace.undoDelete(pending.map(\.id))
@@ -511,5 +515,27 @@ struct PendingDeletionBanner: View {
         .padding(.vertical, 8)
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.thinMaterial))
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Uses the earliest deadline: separate deletions can expire at different times.
+struct DeletionCountdown: View {
+    let notes: [Note]
+
+    static func secondsRemaining(in notes: [Note], at date: Date) -> Int {
+        let deadline = notes.compactMap { note -> Date? in
+            if case let .pendingDeletion(deadline, _) = note.lifecycle { return deadline }
+            return nil
+        }.min()
+        return deadline.map { max(0, Int(ceil($0.timeIntervalSince(date)))) } ?? 0
+    }
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let seconds = Self.secondsRemaining(in: notes, at: context.date)
+            Text("\(seconds)s")
+                .monospacedDigit()
+                .accessibilityLabel("\(seconds) seconds until next deletion becomes permanent")
+        }
     }
 }

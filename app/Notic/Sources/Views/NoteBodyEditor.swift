@@ -138,6 +138,66 @@ struct NoteBodyEditor: NSViewRepresentable {
         var ink: NSColor = .textColor
         var typingFont: NSFont = .systemFont(ofSize: 21)
         var onToggle: ((Int) -> Void)?
+        private var taskControls: [Int: TaskCheckbox] = [:]
+
+        override func accessibilityChildren() -> [Any]? {
+            (super.accessibilityChildren() ?? []) + taskControls.sorted { $0.key < $1.key }.map(\.value)
+        }
+
+        nonisolated final class TaskCheckbox: NSAccessibilityElement {
+            let frame: @MainActor @Sendable () -> NSRect
+            let press: @MainActor @Sendable () -> Bool
+
+            init(frame: @escaping @MainActor @Sendable () -> NSRect,
+                 press: @escaping @MainActor @Sendable () -> Bool) {
+                self.frame = frame
+                self.press = press
+                super.init()
+            }
+
+            override func accessibilityFrame() -> NSRect {
+                MainActor.assumeIsolated(frame)
+            }
+
+            override func accessibilityPerformPress() -> Bool {
+                MainActor.assumeIsolated(press)
+            }
+        }
+
+        private func updateTaskAccessibility() {
+            let markers = taskMarkers()
+            let offsets = Set(markers.map { $0.range.lowerBound })
+            taskControls = taskControls.filter { offsets.contains($0.key) }
+            let ns = string as NSString
+            for marker in markers {
+                let offset = marker.range.lowerBound
+                let control = taskControls[offset] ?? TaskCheckbox(frame: { [weak self] in
+                    guard let self, let window,
+                          let marker = TaskMarkup.marker(onLineContaining: offset, in: string),
+                          let layout = layoutManager, let container = textContainer else { return .zero }
+                    let rect = checkboxRect(for: marker, layout: layout, container: container, origin: textContainerOrigin)
+                    return window.convertToScreen(convert(rect, to: nil))
+                }, press: { [weak self] in
+                    guard let self, let control = taskControls[offset],
+                          TaskMarkup.marker(onLineContaining: offset, in: string) != nil else { return false }
+                    onToggle?(offset)
+                    NSAccessibility.post(element: control, notification: .valueChanged)
+                    return true
+                })
+                control.setAccessibilityElement(true)
+                control.setAccessibilityEnabled(true)
+                control.setAccessibilityIdentifier("notic.task.\(offset)")
+                control.setAccessibilityParent(self)
+                control.setAccessibilityRole(.checkBox)
+                control.setAccessibilityValue(marker.isChecked ? 1 : 0)
+                let line = ns.lineRange(for: NSRange(location: offset, length: 0))
+                let title = ns.substring(with: NSRange(location: marker.range.upperBound, length: NSMaxRange(line) - marker.range.upperBound))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                control.setAccessibilityLabel(title.isEmpty ? "To-do" : title)
+                control.setAccessibilityHelp("Toggle to-do. In the text editor, press Command-Return.")
+                taskControls[offset] = control
+            }
+        }
 
         override var acceptsFirstResponder: Bool { true }
 
@@ -157,6 +217,11 @@ struct NoteBodyEditor: NSViewRepresentable {
         }
 
         override func keyDown(with event: NSEvent) {
+            let modifiers = event.modifierFlags.intersection([.command, .shift, .control, .option])
+            if event.keyCode == 36, modifiers == .command {
+                onToggle?(selectedRange().location)
+                return
+            }
             // ⌘⇧T turns the current line into a to-do (or adds another).
             if event.modifierFlags.contains(.command), event.modifierFlags.contains(.shift),
                event.charactersIgnoringModifiers == "t" {
@@ -232,6 +297,7 @@ struct NoteBodyEditor: NSViewRepresentable {
                 if location >= ns.length { break }
             }
             storage.endEditing()
+            updateTaskAccessibility()
             typingAttributes = [
                 .font: typingFont,
                 .foregroundColor: ink,
