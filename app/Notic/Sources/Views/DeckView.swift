@@ -270,7 +270,7 @@ struct DeckView: View {
 
 /// The shape of a tab: rounded on the side facing the desktop, square where
 /// it runs off the screen edge.
-struct TabShape: InsettableShape {
+nonisolated struct TabShape: InsettableShape {
     var inset: CGFloat = 0
 
     func path(in rect: CGRect) -> Path {
@@ -337,7 +337,7 @@ struct TabLabel: View {
         .accessibilityHidden(true)
     }
 
-    private struct Perforation: Shape {
+    private nonisolated struct Perforation: Shape {
         func path(in rect: CGRect) -> Path {
             var path = Path()
             path.move(to: CGPoint(x: rect.midX, y: rect.minY))
