@@ -1,0 +1,26 @@
+# Notic
+
+> Sticky notes one hover away. Notic is a private, offline menu-bar app for macOS 14 or later that keeps short-lived notes and to-dos at the edge of every display.
+
+Canonical site: https://notic.yagyaraj.com/
+Current version: 1.0
+Developer: Yagyaraj Lodhi
+Contact: hey@yagyaraj.com
+
+## Product facts
+
+- At rest, notes appear as a row of coloured dashes on the right, left, or bottom edge of each display.
+- Hovering fans the notes out as colour tabs without taking focus from the current app.
+- Clicking a tab opens a resizable plain-text editor beside it; edits autosave.
+- Typing [] at the start of a line creates a checkbox to-do; ⇧⌘T adds one and ⌘Return toggles it.
+- Eight pastel colours and six fonts, including the handwritten Patrick Hand.
+- A searchable two-pane library holds active and archived notes; deletes can be undone for ten seconds.
+- Global shortcuts: ⌥⌘N new note, ⌥⌘L library, ⌥⌘A archive, ⌃⌥⌘H hide or show.
+- No account, no network requests, no telemetry, and no Accessibility, Screen Recording, or Input Monitoring permission.
+- Installation uses a DMG: open it, then drag Notic into Applications.
+
+## Canonical pages
+
+- [Product page](https://notic.yagyaraj.com): features, workflow, download, compatibility, and FAQ.
+- [Release notes](https://notic.yagyaraj.com/release-notes/): shipped features.
+- [Privacy](https://notic.yagyaraj.com/privacy/): local storage, permissions, and network access.

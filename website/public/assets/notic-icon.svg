@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 256 256" role="img" aria-label="Notic Note Fan icon">
+        <defs>
+          <linearGradient id="tile" x2=".2" y2="1"><stop stop-color="#527d78"/><stop offset="1" stop-color="#234d4c"/></linearGradient>
+          <linearGradient id="paper" x2=".2" y2="1"><stop stop-color="#fffef6"/><stop offset="1" stop-color="#f3e7c6"/></linearGradient>
+          <linearGradient id="yellow" x2=".2" y2="1"><stop stop-color="#ffe9a6"/><stop offset="1" stop-color="#ecc369"/></linearGradient>
+          <linearGradient id="coral" x2=".2" y2="1"><stop stop-color="#ffc0ac"/><stop offset="1" stop-color="#e88d7b"/></linearGradient>
+          <linearGradient id="mint" x2=".2" y2="1"><stop stop-color="#c7e7d7"/><stop offset="1" stop-color="#8fbdab"/></linearGradient>
+          <linearGradient id="ribbon" x2=".7" y2="1"><stop stop-color="#fffef8"/><stop offset=".5" stop-color="#eee7fa"/><stop offset="1" stop-color="#d7c5ef"/></linearGradient>
+          <radialGradient id="pin" cx=".3" cy=".2" r=".85"><stop stop-color="#ffb398"/><stop offset=".5" stop-color="#ed785e"/><stop offset="1" stop-color="#b84031"/></radialGradient>
+          <filter id="tileShadow" x="-25%" y="-20%" width="150%" height="160%"><feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#17191c" flood-opacity=".18"/></filter>
+          <filter id="paperShadow" x="-50%" y="-50%" width="200%" height="210%"><feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#372918" flood-opacity=".22"/></filter>
+          <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
+        </defs>
+        <rect x="20" y="20" width="216" height="216" rx="49" fill="url(#tile)" filter="url(#tileShadow)"/>
+        <rect x="21" y="21" width="214" height="214" rx="48" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.5"/>
+        <g filter="url(#paperShadow)">
+          <rect x="73" y="57" width="104" height="142" rx="13" transform="rotate(-23 125 166)" fill="url(#coral)" stroke="#ffd1c5" stroke-width="2"/>
+          <rect x="76" y="53" width="104" height="142" rx="13" transform="rotate(1 128 166)" fill="url(#mint)" stroke="#ddf6e8" stroke-width="2"/>
+          <g transform="rotate(22 133 166)"><rect x="80" y="56" width="104" height="142" rx="13" fill="url(#yellow)" stroke="#fff1bb" stroke-width="2"/>
+          <path d="M101 89h61m-61 19h61m-61 19h36" stroke="#b88c3f" stroke-width="6" stroke-linecap="round" opacity=".65"/></g></g>
+      </svg>
