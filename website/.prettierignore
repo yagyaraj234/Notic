@@ -1,0 +1,7 @@
+dist/
+node_modules/
+.vite/
+public/
+downloads/
+assets/
+package-lock.json
