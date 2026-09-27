@@ -38,7 +38,7 @@ export const FAQS = [
   ],
   [
     "How do I install Notic?",
-    "Open the downloaded DMG and drag Notic into Applications. It runs on macOS 14 or later. The first time, right-click the app and choose Open, or allow it in System Settings › Privacy & Security.",
+    "Open the downloaded DMG and drag Notic into Applications. It runs on macOS 14 or later. Notic isn't notarized yet, so the first time macOS may block it: run xattr -cr /Applications/Notic.app in Terminal, or click Open Anyway in System Settings › Privacy & Security.",
   ],
 ];
 

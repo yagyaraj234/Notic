@@ -1119,6 +1119,106 @@ code.syntax {
   margin-bottom: 0;
 }
 
+/* install instructions, opened by every download button */
+.install-dialog {
+  width: min(100% - 2rem, 34rem);
+}
+.install-sheet {
+  position: relative;
+  padding: clamp(1.6rem, 4vw, 2.4rem);
+}
+.install-icon {
+  display: block;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 1rem;
+}
+.install-icon img {
+  width: 100%;
+  height: 100%;
+}
+.install-sheet h2 {
+  margin: 0 0 0.6rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 1.9rem);
+  letter-spacing: -0.018em;
+  line-height: 1.15;
+}
+.install-lede {
+  margin: 0 auto 1.4rem;
+  max-width: 40ch;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+.install-steps {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+  padding-left: 1.3rem;
+  list-style: decimal;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.install-steps li::marker {
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.install-steps em {
+  color: var(--muted);
+}
+.install-command {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--r-md);
+  background: var(--ink);
+  color: var(--color-bg-elevated);
+  padding: 0.6rem 0.6rem 0.6rem 1.1rem;
+}
+.install-command code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.88rem;
+  user-select: all;
+}
+.install-command button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-hover) var(--ease-out),
+    scale var(--dur-press) var(--ease-out);
+}
+.install-command button:active {
+  scale: 0.96;
+}
+.install-note {
+  margin: 0.9rem 0 1.4rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+.install-note strong {
+  color: var(--ink);
+}
+.install-download {
+  width: 100%;
+}
+
 .showcase-card[data-tone="colors"] .showcase-visual {
   background: linear-gradient(155deg, #fff1bf, #ffd29a 58%, #ff9f8a);
 }
@@ -2313,6 +2413,9 @@ code.syntax {
   }
   .menu-button:hover {
     background: var(--blue-pale);
+  }
+  .install-command button:hover {
+    background: rgba(255, 255, 255, 0.1);
   }
   .story-nav button:not(.is-active):hover {
     background: var(--blue-pale);
