@@ -129,7 +129,7 @@ final class EditorPanel: NSPanel, NSWindowDelegate {
         NSAnimationContext.runAnimationGroup { context in
             // Exits are shorter than entrances: the system getting out of the way.
             context.duration = Motion.scaled(0.12)
-            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            context.timingFunction = Motion.panelExit
             animator().alphaValue = 0
             animator().setFrame(frame.offsetBy(dx: offset.dx, dy: offset.dy), display: true)
         } completionHandler: { [weak self] in

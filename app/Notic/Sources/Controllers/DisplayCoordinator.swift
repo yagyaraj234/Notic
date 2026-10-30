@@ -14,6 +14,7 @@ final class DisplayCoordinator {
 
     private let edgePanel: EdgePanel
     private var editorPanel: EditorPanel?
+    private let dropZones = DropZonePanel()
     private var observation: ObservationToken?
     private var tabDragObservation: ObservationToken?
     private var focusesNextEditor = false
@@ -39,13 +40,29 @@ final class DisplayCoordinator {
         }
         edgePanel.onStackDrag = { [weak self] point, ended in
             guard let self else { return }
-            self.geometry.layout = self.layout.docking(at: point)
+            let docked = self.layout.docking(at: point)
+            guard ended else {
+                // Tabs only make sense against an edge, so while it moves the
+                // stack is one whole card under the pointer. Hidden, not
+                // ordered out: the panel is still tracking the drag.
+                self.edgePanel.alphaValue = 0
+                self.dropZones.show(docked.edge, over: self.layout.visibleFrame, pointer: point,
+                                    card: self.dragCard, below: self.edgePanel)
+                return
+            }
+            self.geometry.layout = docked
             self.refreshFrames(animated: false)
-            if ended {
-                self.workspace.updateSettings {
-                    $0.stackPosition = self.layout.edge
-                    $0.stackOffset = self.layout.position
-                }
+            // A dropped stack rests closed; the card lands on the pill, not the fanned deck.
+            self.workspace.restDeck(on: display)
+            let dock = self.current.map {
+                self.layout.pillFrame(noteCount: $0.deckCount, hasOverflow: $0.hasOverflow, footerRows: $0.footerRows)
+            } ?? self.edgePanel.interactiveFrame
+            self.dropZones.dismiss(landingAt: CGPoint(x: dock.midX, y: dock.midY)) { [weak self] in
+                self?.edgePanel.alphaValue = 1
+            }
+            self.workspace.updateSettings {
+                $0.stackPosition = docked.edge
+                $0.stackOffset = docked.position
             }
         }
         edgePanel.onStackRelease = { [weak self] in
@@ -124,6 +141,7 @@ final class DisplayCoordinator {
         editorPanel = nil
         for panel in retiring { panel.orderOut(nil) }
         retiring.removeAll()
+        dropZones.orderOut(nil)
         edgePanel.orderOut(nil)
     }
 
@@ -158,9 +176,12 @@ final class DisplayCoordinator {
 
         var presentedEditor: EditorPanel?
         // Read before the panels change: is the pointer on the deck or editor?
-        let slide = edgeSlide
+        var slide = edgeSlide
         if let id = snapshot.openNoteID {
             if editorPanel?.noteID != id {
+                // One note replacing another in the same spot swaps at once:
+                // two editors sliding past each other read as a double exposure.
+                if editorPanel != nil { slide = nil }
                 retire(editorPanel, slidingTo: slide)
                 let panel = makeEditorPanel(for: id)
                 editorPanel = panel
@@ -201,10 +222,13 @@ final class DisplayCoordinator {
     /// How far an editor slides toward the deck's edge when it opens from, or
     /// closes into, its tab with the pointer; `nil` for keyboard commands,
     /// which stay instant. The state change arrives a turn after the event,
-    /// so the pointer being on the deck or the editor stands in for a click.
+    /// so a click that just landed on the deck or the editor stands in for
+    /// the cause. Global hotkeys arrive as Carbon events, never as a click.
     private var edgeSlide: CGVector? {
         let pointer = NSEvent.mouseLocation
-        guard NSApp.currentEvent?.type != .keyDown,
+        guard let event = NSApp.currentEvent,
+              [.leftMouseDown, .leftMouseUp].contains(event.type),
+              ProcessInfo.processInfo.systemUptime - event.timestamp < 0.5,
               edgePanel.frame.contains(pointer) || editorPanel?.frame.contains(pointer) == true
         else { return nil }
         if Motion.systemReducesMotion { return .zero }
@@ -304,6 +328,16 @@ final class DisplayCoordinator {
                 glideEditor(editorPanel, to: target)
             }
         }
+    }
+
+    /// The front note, standing in for the whole stack while it is dragged.
+    private var dragCard: DragCard {
+        let notes = workspace.deckNotes
+        let paper = workspace.settings.paperStyle
+        guard let front = notes.first else {
+            return DragCard(title: "No notes", swatch: NotePalette.swatch(for: .yellow, paper: paper), count: 0)
+        }
+        return DragCard(title: DeckView.tabTitle(of: front), swatch: NotePalette.swatch(for: .yellow, paper: paper), count: notes.count)
     }
 
     private func editorTarget(for snapshot: Snapshot) -> CGRect? {

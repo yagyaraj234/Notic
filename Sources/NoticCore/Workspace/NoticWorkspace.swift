@@ -491,6 +491,18 @@ public final class NoticWorkspace {
         displays[display] = presentation
     }
 
+    /// Folds the deck straight back to its pill, closing any open note, as
+    /// when the stack has just been dropped on an edge. A deck kept open, or
+    /// holding an Undo, stays fanned.
+    public func restDeck(on display: DisplayID) {
+        guard var presentation = displays[display] else { return }
+        if presentation.state.openNoteID != nil { flushPendingChanges() }
+        presentation.cancelTimers()
+        presentation.pointerInside = false
+        presentation.state = settings.keepsDeckOpen || !pendingDeletions.isEmpty ? .fanned : .dormant
+        displays[display] = presentation
+    }
+
     /// Hides or restores every Notic surface without touching notes.
     public func toggleHidden() {
         isHidden.toggle()

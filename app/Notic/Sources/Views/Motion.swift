@@ -34,6 +34,9 @@ enum Motion {
             : .timingCurve(0.23, 1, 0.32, 1, duration: duration)
     }
 
+    /// The dragged stack flying from the pointer into its dock on release.
+    static var landDuration: TimeInterval { scaled(0.2) }
+
     /// Response of the everyday settle: reflow and gesture release.
     static var response: TimeInterval { scaled(0.32) }
 
@@ -90,6 +93,10 @@ enum Motion {
 
     /// AppKit return-to-tab glide for an editor already on screen.
     static let panelEnter = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
+
+    /// AppKit panels leaving. Strong ease-out, cubic-bezier(0.23, 1, 0.32, 1):
+    /// never ease-in, which holds still at the moment the user is watching.
+    static let panelExit = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1)
 
     /// AppKit-side reduce-motion check for panel-level animation.
     static var systemReducesMotion: Bool {

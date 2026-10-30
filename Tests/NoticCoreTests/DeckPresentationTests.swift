@@ -230,6 +230,21 @@ struct DeckPresentationTests {
         #expect(workspace.deckState(on: main) == .fanned)
     }
 
+    @Test func `dropping the stack rests the deck, closing an open note`() throws {
+        let fixture = try WorkspaceFixture()
+        let workspace = try fixture.launch()
+        workspace.attachDisplay(main)
+        let note = workspace.createNote()
+        workspace.pointerEntered(main)
+        workspace.openNote(note, on: main)
+
+        workspace.restDeck(on: main)
+
+        #expect(workspace.deckState(on: main) == .dormant)
+        fixture.scheduler.advance(by: 5)
+        #expect(workspace.deckState(on: main) == .dormant)
+    }
+
     @Test func `with the fan trigger set to click, hovering never fans the deck`() throws {
         let fixture = try WorkspaceFixture()
         let workspace = try fixture.launch()
