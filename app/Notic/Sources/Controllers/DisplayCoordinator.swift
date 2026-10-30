@@ -14,6 +14,7 @@ final class DisplayCoordinator {
 
     private let edgePanel: EdgePanel
     private var editorPanel: EditorPanel?
+    private let dropZones = DropZonePanel()
     private var observation: ObservationToken?
     private var tabDragObservation: ObservationToken?
     private var focusesNextEditor = false
@@ -39,13 +40,23 @@ final class DisplayCoordinator {
         }
         edgePanel.onStackDrag = { [weak self] point, ended in
             guard let self else { return }
-            self.geometry.layout = self.layout.docking(at: point)
+            let docked = self.layout.docking(at: point)
+            guard ended else {
+                // Tabs only make sense against an edge, so while it moves the
+                // stack is one whole card under the pointer. Hidden, not
+                // ordered out: the panel is still tracking the drag.
+                self.edgePanel.alphaValue = 0
+                self.dropZones.show(docked.edge, over: self.layout.visibleFrame, pointer: point,
+                                    card: self.dragCard, below: self.edgePanel)
+                return
+            }
+            self.dropZones.dismiss()
+            self.geometry.layout = docked
             self.refreshFrames(animated: false)
-            if ended {
-                self.workspace.updateSettings {
-                    $0.stackPosition = self.layout.edge
-                    $0.stackOffset = self.layout.position
-                }
+            self.edgePanel.alphaValue = 1
+            self.workspace.updateSettings {
+                $0.stackPosition = docked.edge
+                $0.stackOffset = docked.position
             }
         }
         edgePanel.onStackRelease = { [weak self] in
@@ -124,6 +135,7 @@ final class DisplayCoordinator {
         editorPanel = nil
         for panel in retiring { panel.orderOut(nil) }
         retiring.removeAll()
+        dropZones.orderOut(nil)
         edgePanel.orderOut(nil)
     }
 
@@ -304,6 +316,16 @@ final class DisplayCoordinator {
                 glideEditor(editorPanel, to: target)
             }
         }
+    }
+
+    /// The front note, standing in for the whole stack while it is dragged.
+    private var dragCard: DragCard {
+        let notes = workspace.deckNotes
+        let paper = workspace.settings.paperStyle
+        guard let front = notes.first else {
+            return DragCard(title: "No notes", swatch: NotePalette.swatch(for: .yellow, paper: paper), count: 0)
+        }
+        return DragCard(title: DeckView.tabTitle(of: front), swatch: NotePalette.swatch(for: .yellow, paper: paper), count: notes.count)
     }
 
     private func editorTarget(for snapshot: Snapshot) -> CGRect? {

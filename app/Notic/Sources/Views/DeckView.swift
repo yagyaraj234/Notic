@@ -77,10 +77,10 @@ struct DeckView: View {
                     ForEach(Array(notes.enumerated()), id: \.element.id) { index, note in
                         let dragging = drag?.id == note.id
                         NoteTabView(
-                            title: tabTitle(of: note),
+                            title: Self.tabTitle(of: note),
                             swatch: NotePalette.swatch(for: note.color, paper: workspace.settings.paperStyle),
                             colorName: NotePalette.name(for: note.color),
-                            preview: preview(of: note),
+                            preview: Self.preview(of: note),
                             visibleLength: visibleLength(at: index, metrics: metrics),
                             mirrored: geometry.layout.edge == .left,
                             tilt: workspace.settings.tiltsTabs ? NoteTabView.lean(for: note.id, at: index) : 0,
@@ -148,13 +148,13 @@ struct DeckView: View {
 
     /// The note's title, or its first line while the title is still the
     /// automatic timestamp: a deck of same-day timestamps is unreadable.
-    private func tabTitle(of note: Note) -> String {
+    static func tabTitle(of note: Note) -> String {
         let automatic = note.title.isEmpty || note.title == NoticWorkspace.timestampTitle(for: note.createdAt)
         let line = preview(of: note).trimmingCharacters(in: .whitespaces)
         return automatic && !line.isEmpty ? line : note.title
     }
 
-    private func preview(of note: Note) -> String {
+    private static func preview(of note: Note) -> String {
         let first = TaskMarkup.preview(note.body).split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
         return first
     }
