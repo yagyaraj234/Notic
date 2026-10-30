@@ -78,7 +78,6 @@ final class DisplayCoordinator {
                 openNoteID: openNote?.id,
                 openTabIndex: openNote.flatMap { note in deck.firstIndex { $0.id == note.id } } ?? 0,
                 openEditorSize: openNote?.editorSize,
-                editorOrigin: openNote?.editorOrigin,
                 settings: workspace.settings
             )
         }) { [weak self] snapshot in
@@ -139,7 +138,6 @@ final class DisplayCoordinator {
         var openNoteID: Note.ID?
         var openTabIndex: Int
         var openEditorSize: CGSize?
-        var editorOrigin: CGPoint?
         var settings: NoticSettings
     }
 
@@ -159,15 +157,17 @@ final class DisplayCoordinator {
         }
 
         var presentedEditor: EditorPanel?
+        // Read before the panels change: is the pointer on the deck or editor?
+        let slide = edgeSlide
         if let id = snapshot.openNoteID {
             if editorPanel?.noteID != id {
-                retire(editorPanel)
+                retire(editorPanel, slidingTo: slide)
                 let panel = makeEditorPanel(for: id)
                 editorPanel = panel
                 presentedEditor = panel
             }
         } else if let editorPanel {
-            retire(editorPanel)
+            retire(editorPanel, slidingTo: slide)
             self.editorPanel = nil
         }
 
@@ -176,7 +176,7 @@ final class DisplayCoordinator {
         edgePanel.orderFrontRegardless()
 
         if let presentedEditor {
-            presentedEditor.present(at: editorTarget(for: snapshot) ?? presentedEditor.frame)
+            presentedEditor.present(at: editorTarget(for: snapshot) ?? presentedEditor.frame, slidingFrom: slide)
         } else {
             editorPanel?.orderFrontRegardless()
         }
@@ -188,15 +188,32 @@ final class DisplayCoordinator {
     }
 
     /// Hide the previous editor before presenting its replacement.
-    private func retire(_ panel: EditorPanel?) {
+    private func retire(_ panel: EditorPanel?, slidingTo offset: CGVector?) {
         guard let panel else { return }
         retiring.insert(panel)
-        panel.dismiss { [weak self] in
+        panel.dismiss(slidingTo: offset) { [weak self] in
             self?.retiring.remove(panel)
         }
     }
 
     private var retiring: Set<EditorPanel> = []
+
+    /// How far an editor slides toward the deck's edge when it opens from, or
+    /// closes into, its tab with the pointer; `nil` for keyboard commands,
+    /// which stay instant. The state change arrives a turn after the event,
+    /// so the pointer being on the deck or the editor stands in for a click.
+    private var edgeSlide: CGVector? {
+        let pointer = NSEvent.mouseLocation
+        guard NSApp.currentEvent?.type != .keyDown,
+              edgePanel.frame.contains(pointer) || editorPanel?.frame.contains(pointer) == true
+        else { return nil }
+        if Motion.systemReducesMotion { return .zero }
+        switch layout.edge {
+        case .right: return CGVector(dx: 16, dy: 0)
+        case .left: return CGVector(dx: -16, dy: 0)
+        case .bottom: return CGVector(dx: 0, dy: -16)
+        }
+    }
 
     private func makeEditorPanel(for id: Note.ID) -> EditorPanel {
         EditorPanel(
@@ -209,25 +226,24 @@ final class DisplayCoordinator {
                 // Re-anchor using the size the user just chose: beside the deck,
                 // or wherever they dragged the note, which resizing may have shifted.
                 guard let self, let size = self.workspace.note(id)?.editorSize else { return }
-                if self.placedOrigins[id] != nil, let panel = self.editorPanel, panel.noteID == id {
-                    self.placedOrigins[id] = panel.frame.origin
+                if self.current?.settings.editorOrigin != nil, let panel = self.editorPanel, panel.noteID == id {
+                    self.workspace.setEditorOrigin(panel.frame.origin)
+                    self.current?.settings.editorOrigin = panel.frame.origin
                 }
                 self.current?.openEditorSize = size
                 self.refreshFrames(animated: false)
             },
             onMove: { [weak self] origin in
                 guard let self else { return }
-                self.placedOrigins[id] = origin
-                self.workspace.setEditorOrigin(of: id, to: origin)
+                self.workspace.setEditorOrigin(origin)
+                // Keep the snapshot in step so the settings change does not re-apply mid-drag.
+                self.current?.settings.editorOrigin = origin
                 if origin == nil {
-                    self.current?.editorOrigin = nil
                     if let editorPanel = self.editorPanel, let current = self.current,
                        let target = self.editorTarget(for: current) {
                         // Double-click: glide back to the tab instead of jumping.
                         self.glideEditor(editorPanel, to: target)
                     }
-                } else {
-                    self.current?.editorOrigin = origin
                 }
             },
             onClose: { [weak self] in
@@ -241,7 +257,7 @@ final class DisplayCoordinator {
     /// moving to a new place, not appearing.
     private func glideEditor(_ panel: EditorPanel, to target: CGRect) {
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = Motion.systemReducesMotion ? 0 : 0.22
+            context.duration = Motion.systemReducesMotion ? 0 : Motion.scaled(0.22)
             context.timingFunction = Motion.panelEnter
             panel.animator().setFrame(target, display: true)
         }
@@ -266,7 +282,7 @@ final class DisplayCoordinator {
         edgePanel.dragsPill = current.state == .dormant
         // Leave the add button and footer controls on their normal click path.
         let controls = EdgeLayout.deckPadding + EdgeLayout.addButtonSize
-            + EdgeLayout.addButtonGap + CGFloat(current.footerRows) * EdgeLayout.footerRowHeight
+            + EdgeLayout.addButtonGap + CGFloat(current.footerRows) * layout.footerRowLength
         if layout.edge == .bottom {
             edgePanel.stackDragFrame = CGRect(x: deck.frame.minX + controls, y: deck.frame.minY,
                                               width: deck.frame.width - controls, height: deck.frame.height)
@@ -280,8 +296,7 @@ final class DisplayCoordinator {
 
         if let editorPanel, !editorPanel.inLiveResize, !editorPanel.isBeingDragged,
            let target = editorTarget(for: current), editorPanel.frame != target {
-            let followsDrag = current.editorOrigin == nil
-                && current.openNoteID.flatMap { placedOrigins[$0] } == nil
+            let followsDrag = current.settings.editorOrigin == nil
                 && geometry.tabDrag?.id == current.openNoteID
             if followsDrag || !animated || !editorPanel.isVisible {
                 editorPanel.setFrame(target, display: true)
@@ -291,14 +306,9 @@ final class DisplayCoordinator {
         }
     }
 
-    /// Where the user last dragged each note's editor on this display. A note
-    /// without an entry opens level with its tab; one with an entry reopens
-    /// where it was left for as long as Notic runs.
-    private var placedOrigins: [Note.ID: CGPoint] = [:]
-
     private func editorTarget(for snapshot: Snapshot) -> CGRect? {
         guard let size = snapshot.openEditorSize, let id = snapshot.openNoteID else { return nil }
-        if let origin = snapshot.editorOrigin ?? placedOrigins[id] {
+        if let origin = snapshot.settings.editorOrigin {
             return layout.editorFrame(size: size, placedAt: origin)
         }
         let deck = layout.deckMetrics(noteCount: snapshot.deckCount, hasOverflow: snapshot.hasOverflow, footerRows: snapshot.footerRows)

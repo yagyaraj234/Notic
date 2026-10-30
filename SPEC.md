@@ -29,7 +29,7 @@ The interaction concept may be inspired by edge-docked note applications, but No
 11. As a user, I want opening another note on the same display to collapse the current note, so that the interaction remains predictable.
 12. As a user, I want closing an editor to collapse it without deleting or archiving the note, so that closing is always safe.
 13. As a user, I want a visible add control in the deck, so that I can create a note with the pointer.
-14. As a keyboard-focused user, I want to create a note with Option-Command-N, so that capture is instant from any application.
+14. As a keyboard-focused user, I want to create a note with Control-Option-Command-N, so that capture is instant from any application.
 15. As a user, I want new notes placed first in the active deck, so that newly captured information is immediately visible.
 16. As a user, I want each note to have a title and body, so that I can label and write the note independently.
 17. As a user, I want plain-text editing with normal line wrapping, so that writing remains simple and reliable.
@@ -47,12 +47,12 @@ The interaction concept may be inspired by edge-docked note applications, but No
 29. As a user with more than eight active notes, I want a “+N more” tile, so that the deck stays usable on a finite-height display.
 30. As a user, I want the “+N more” tile to open the note library, so that overflow notes remain reachable.
 31. As a user, I want one library window containing all notes, so that I can manage information beyond the visible deck.
-32. As a keyboard-focused user, I want to open the library with Option-Command-L, so that I can reach it globally.
+32. As a keyboard-focused user, I want to open the library with Control-Option-Command-L, so that I can reach it globally.
 33. As a user, I want to search note titles and bodies, so that I can find content without remembering its location.
 34. As a user, I want to filter the library by active or archived state, so that I can focus on the relevant set.
 35. As a user, I want to select multiple notes in the library, so that bulk archive, restore, and deletion are efficient.
 36. As a user, I want to archive an active note, so that it leaves the edge deck without being lost.
-37. As a keyboard-focused user, I want to open the archive with Option-Command-A, so that archived material is quickly available.
+37. As a keyboard-focused user, I want to open the archive with Control-Option-Command-A, so that archived material is quickly available.
 38. As a user, I want to restore an archived note, so that it returns to the active deck.
 39. As a user, I want archived notes retained indefinitely, so that archiving is never equivalent to deletion.
 40. As a user, I want deleting a note to provide a ten-second Undo opportunity, so that accidental deletion is recoverable.
@@ -111,7 +111,7 @@ The interaction concept may be inspired by edge-docked note applications, but No
 - Deletion marks a note as pending deletion for ten seconds. Undo restores the note to its prior lifecycle state. Expired deletions are finalized during normal operation and reconciled at launch.
 - New notes are inserted first in manual deck order. User-driven reordering updates stable ordering values and persists atomically.
 - The library searches titles and bodies, filters active and archived notes, and supports multi-selection for archive, restore, and delete commands.
-- Global keyboard shortcuts are Option-Command-N for a new note, Option-Command-L for the library, Option-Command-A for the archive, and Control-Option-Command-H for global hide/show.
+- Global keyboard shortcuts are Control-Option-Command-N for a new note, Control-Option-Command-L for the library, Control-Option-Command-A for the archive, and Control-Option-Command-H for global hide/show. All four use Control-Option-Command because a global hot key overrides the frontmost app (Option-Command-N and -L belong to Finder and Safari). A preference turns them off entirely.
 - Global shortcuts will use a macOS system hotkey mechanism that does not require Accessibility or Input Monitoring permission.
 - Launch at Login will use the supported macOS service-management API and remain disabled until the user opts in.
 - Panels participate across normal Spaces. Always-on-top and full-screen visibility are independent opt-in preferences and are expressed through AppKit window levels and collection behavior.

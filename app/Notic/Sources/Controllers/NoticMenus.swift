@@ -14,6 +14,9 @@ final class NoticMenus: NSObject {
     /// Set by the library so its row menu can open a note in place.
     var openNote: ((Note.ID) -> Void)?
     var failedShortcuts: [HotKeyCenter.Shortcut] = []
+    /// Off when the user has turned global shortcuts off, so menus don't
+    /// advertise keys that do nothing.
+    var showsShortcuts = true
 
     init(workspace: NoticWorkspace, commands: AppCommands) {
         self.workspace = workspace
@@ -67,6 +70,10 @@ final class NoticMenus: NSObject {
         menu.addItem(.separator())
         menu.addItem(item("All Notes…", #selector(showLibrary), shortcut: .showLibrary))
         menu.addItem(item("Show Archive…", #selector(showArchive), shortcut: .showArchive))
+        menu.addItem(item("Export All Notes…", #selector(exportAll)))
+        let above = item("Keep Notes Above Other Apps", #selector(toggleAboveAllApps))
+        above.state = workspace.settings.showsAboveAllApps ? .on : .off
+        menu.addItem(above)
         let settings = item("Settings…", #selector(showSettings))
         settings.keyEquivalent = ","
         settings.keyEquivalentModifierMask = .command
@@ -110,6 +117,7 @@ final class NoticMenus: NSObject {
         }
 
         if !pending {
+            menu.addItem(item("Export…", #selector(export(_:)), note: id))
             menu.addItem(item("Delete", #selector(delete(_:)), note: id))
         }
     }
@@ -156,7 +164,7 @@ final class NoticMenus: NSObject {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
         item.target = self
         item.representedObject = note
-        if let shortcut {
+        if let shortcut, showsShortcuts {
             let (key, modifiers) = shortcut.keyEquivalent
             item.keyEquivalent = key
             item.keyEquivalentModifierMask = modifiers
@@ -205,12 +213,22 @@ final class NoticMenus: NSObject {
         workspace.setColor(of: choice.note, to: choice.color)
     }
 
+    @objc private func export(_ sender: Any?) {
+        guard let id = noteID(from: sender), let note = workspace.note(id) else { return }
+        commands.exportNotes([note])
+    }
+
+    @objc private func exportAll() {
+        commands.exportNotes(workspace.libraryNotes(matching: "", filter: .all))
+    }
+
     @objc private func undoPendingDeletes() { workspace.undoDelete(workspace.pendingDeletions.map(\.id)) }
 
     @objc private func newNote() { commands.newNote(nil) }
     @objc private func showLibrary() { commands.showLibrary() }
     @objc private func showArchive() { commands.showArchive() }
     @objc private func toggleHidden() { commands.toggleHidden() }
+    @objc private func toggleAboveAllApps() { workspace.updateSettings { $0.showsAboveAllApps.toggle() } }
     @objc private func showSettings() { commands.showSettings() }
     @objc private func quit() { commands.quit() }
 }

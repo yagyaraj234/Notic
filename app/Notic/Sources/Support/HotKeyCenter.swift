@@ -12,9 +12,9 @@ final class HotKeyCenter {
 
         var displayName: String {
             switch self {
-            case .newNote: "⌥⌘N"
-            case .showLibrary: "⌥⌘L"
-            case .showArchive: "⌥⌘A"
+            case .newNote: "⌃⌥⌘N"
+            case .showLibrary: "⌃⌥⌘L"
+            case .showArchive: "⌃⌥⌘A"
             case .toggleHidden: "⌃⌥⌘H"
             }
         }
@@ -37,19 +37,16 @@ final class HotKeyCenter {
             }
         }
 
-        var carbonModifiers: UInt32 {
-            switch self {
-            case .newNote, .showLibrary, .showArchive: UInt32(optionKey | cmdKey)
-            case .toggleHidden: UInt32(controlKey | optionKey | cmdKey)
-            }
-        }
+        /// ⌃⌥⌘ for every shortcut: a global hot key overrides the frontmost
+        /// app, and plain ⌥⌘ took ⌥⌘N and ⌥⌘L from Finder and Safari.
+        var carbonModifiers: UInt32 { UInt32(controlKey | optionKey | cmdKey) }
 
         /// The same shortcut expressed for menu items.
         var keyEquivalent: (String, NSEvent.ModifierFlags) {
             switch self {
-            case .newNote: ("n", [.option, .command])
-            case .showLibrary: ("l", [.option, .command])
-            case .showArchive: ("a", [.option, .command])
+            case .newNote: ("n", [.control, .option, .command])
+            case .showLibrary: ("l", [.control, .option, .command])
+            case .showArchive: ("a", [.control, .option, .command])
             case .toggleHidden: ("h", [.control, .option, .command])
             }
         }

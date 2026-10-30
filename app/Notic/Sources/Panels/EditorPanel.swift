@@ -98,16 +98,45 @@ final class EditorPanel: NSPanel, NSWindowDelegate {
 
     // MARK: Presentation
 
-    /// Opening and closing notes are frequent keyboard actions: present immediately.
-    func present(at frame: CGRect) {
-        alphaValue = 1
-        setFrame(frame, display: false)
+    /// Opening and closing notes are frequent keyboard actions: present
+    /// immediately. A note pulled from its tab with the pointer instead slides
+    /// out of the edge by `offset` (`.zero` fades only, for reduced motion).
+    func present(at frame: CGRect, slidingFrom offset: CGVector? = nil) {
+        guard let offset else {
+            alphaValue = 1
+            setFrame(frame, display: false)
+            orderFrontRegardless()
+            return
+        }
+        alphaValue = 0
+        setFrame(frame.offsetBy(dx: offset.dx, dy: offset.dy), display: false)
         orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = Motion.scaled(0.16)
+            context.timingFunction = Motion.panelEnter
+            animator().alphaValue = 1
+            animator().setFrame(frame, display: true)
+        }
     }
 
-    func dismiss(completion: @escaping () -> Void) {
-        orderOut(nil)
-        completion()
+    /// Leaves the way it came: back toward the edge by `offset`, or at once.
+    func dismiss(slidingTo offset: CGVector? = nil, completion: @escaping () -> Void) {
+        guard let offset else {
+            orderOut(nil)
+            completion()
+            return
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            // Exits are shorter than entrances: the system getting out of the way.
+            context.duration = Motion.scaled(0.12)
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            animator().alphaValue = 0
+            animator().setFrame(frame.offsetBy(dx: offset.dx, dy: offset.dy), display: true)
+        } completionHandler: { [weak self] in
+            self?.orderOut(nil)
+            self?.alphaValue = 1
+            completion()
+        }
     }
 
     /// An explicit click anywhere in the editor is the one interaction that

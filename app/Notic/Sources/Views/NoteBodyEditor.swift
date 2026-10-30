@@ -50,6 +50,9 @@ struct NoteBodyEditor: NSViewRepresentable {
         scroll.documentView = textView
         context.coordinator.textView = textView
         context.coordinator.apply(text: text, font: font, ink: ink, notify: false)
+        // Open ready to add to the note, not at offset 0, which on a to-do
+        // line sits on top of its checkbox.
+        textView.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))
         return scroll
     }
 
@@ -101,6 +104,16 @@ struct NoteBodyEditor: NSViewRepresentable {
             let cursor = textView.selectedRange().location
             let result = TaskMarkup.insertingTask(at: cursor, in: textView.string)
             textView.replaceBody(with: result.text, cursor: result.cursor)
+        }
+
+        /// Keeps the caret, and the start of a selection, out of hidden task
+        /// markers so typing or deleting never eats into one.
+        func textView(_ textView: NSTextView, willChangeSelectionFromCharacterRange old: NSRange, toCharacterRange new: NSRange) -> NSRange {
+            // Only a caret move or a one-character ⇧← may step on to the
+            // previous line; any other selection (undo, a drag) lands after the box.
+            let stepBack = new.length == 0 || (NSMaxRange(new) == NSMaxRange(old) && new.length == old.length + 1)
+            let start = TaskMarkup.caretOffset(new.location, comingFrom: stepBack ? old.location : new.location, in: textView.string)
+            return NSRange(location: start, length: new.length == 0 ? 0 : max(0, NSMaxRange(new) - start))
         }
 
         func textDidChange(_ notification: Notification) {
@@ -232,10 +245,34 @@ struct NoteBodyEditor: NSViewRepresentable {
             super.keyDown(with: event)
         }
 
+        /// ⌫ just after a to-do's box removes the box, as in Notes, instead of
+        /// eating the hidden space and leaving "- [ ]" in the text.
+        override func deleteBackward(_ sender: Any?) {
+            let selection = selectedRange()
+            if selection.length == 0,
+               let marker = TaskMarkup.marker(onLineContaining: selection.location, in: string),
+               selection.location == marker.range.upperBound {
+                replaceBody(with: TaskMarkup.settingTask(false, onLineContaining: selection.location, in: string), cursor: marker.range.lowerBound)
+                return
+            }
+            super.deleteBackward(sender)
+        }
+
         func replaceBody(with text: String, cursor: Int) {
             guard text != string else { return }
+            // Replace only what changed: undo then reselects that span, not
+            // the whole note, where the next keystroke would replace it all.
+            let old = Array(string.unicodeScalars), new = Array(text.unicodeScalars)
+            var prefix = 0
+            while prefix < min(old.count, new.count), old[prefix] == new[prefix] { prefix += 1 }
+            var suffix = 0
+            while suffix < min(old.count, new.count) - prefix, old[old.count - 1 - suffix] == new[new.count - 1 - suffix] { suffix += 1 }
+            let utf16 = { (scalars: ArraySlice<Unicode.Scalar>) in scalars.reduce(0) { $0 + $1.utf16.count } }
+            let replaced = NSRange(location: utf16(old[..<prefix]), length: utf16(old[prefix..<(old.count - suffix)]))
+            var inserted = String.UnicodeScalarView()
+            inserted.append(contentsOf: new[prefix..<(new.count - suffix)])
             breakUndoCoalescing()
-            insertText(text, replacementRange: NSRange(location: 0, length: (string as NSString).length))
+            insertText(String(inserted), replacementRange: replaced)
             setSelectedRange(NSRange(location: min(cursor, (string as NSString).length), length: 0))
             breakUndoCoalescing()
         }

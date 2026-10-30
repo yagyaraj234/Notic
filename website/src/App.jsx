@@ -44,7 +44,7 @@ const HOME_SCHEMA = {
       applicationSubCategory: "Notes",
       operatingSystem: "macOS 14 or later",
       softwareVersion: VERSION,
-      downloadUrl: `${SITE_URL}/downloads/Notic-1.0-macOS.dmg`,
+      downloadUrl: `${SITE_URL}/downloads/Notic-1.1-macOS.dmg`,
       screenshot: `${SITE_URL}/assets/notic-icon.svg`,
       featureList: [
         "Edge-docked note deck on every display",

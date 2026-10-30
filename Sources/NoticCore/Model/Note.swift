@@ -53,9 +53,6 @@ public nonisolated struct Note: Identifiable, Hashable, Sendable {
     /// Manual deck position. Lower values are shown first.
     public var sortOrder: Int
     public var editorSize: CGSize
-    /// Where the user last dragged this note's editor. `nil` means it opens
-    /// level with its tab.
-    public var editorOrigin: CGPoint?
     public let createdAt: Date
     public var modifiedAt: Date
     public var lifecycle: NoteLifecycle
@@ -67,7 +64,6 @@ public nonisolated struct Note: Identifiable, Hashable, Sendable {
         color: NoteColor = .yellow,
         sortOrder: Int = 0,
         editorSize: CGSize = EditorSizing.defaultSize,
-        editorOrigin: CGPoint? = nil,
         createdAt: Date,
         modifiedAt: Date,
         lifecycle: NoteLifecycle = .active
@@ -78,7 +74,6 @@ public nonisolated struct Note: Identifiable, Hashable, Sendable {
         self.color = color
         self.sortOrder = sortOrder
         self.editorSize = editorSize
-        self.editorOrigin = editorOrigin
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
         self.lifecycle = lifecycle

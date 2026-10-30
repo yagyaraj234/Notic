@@ -7,7 +7,8 @@ struct LaunchOptions {
     /// `-NoticDataDirectory <path>`: store notes here instead of the sandbox
     /// default. The path must be writable from inside the sandbox container.
     var dataDirectory: URL?
-    /// `-NoticResetData`: delete the data directory before opening it.
+    /// `-NoticResetData`: delete the `-NoticDataDirectory` directory before
+    /// opening it. Ignored without one.
     var resetsData = false
     /// `-NoticSeedNotes <count>`: create this many titled notes on launch.
     var seedNoteCount = 0
@@ -43,8 +44,9 @@ struct LaunchOptions {
     /// Resolves the directory to open, wiping it first when `-NoticResetData` is set.
     func resolveDataDirectory(default defaultDirectory: URL) -> URL {
         let directory = dataDirectory ?? defaultDirectory
-        if resetsData {
-            try? FileManager.default.removeItem(at: directory)
+        // Only a test directory may be wiped, never the user's real library.
+        if resetsData, let dataDirectory {
+            try? FileManager.default.removeItem(at: dataDirectory)
         }
         return directory
     }

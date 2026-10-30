@@ -42,9 +42,30 @@ const RELEASE_NOTES_SCHEMA = {
 /** Only shipped builds belong here. */
 const RELEASES = [
   {
+    version: "1.1",
+    meta: "Safer defaults and export · macOS 14+",
+    latest: true,
+    changes: [
+      "Global shortcuts move to ⌃⌥⌘N, ⌃⌥⌘L, ⌃⌥⌘A, and ⌃⌥⌘H so Finder and Safari keep ⌥⌘N and ⌥⌘L, and a Settings switch turns them off",
+      "Export one note or all notes as Markdown files",
+      "New notes start in a random colour, never the same as the note before",
+      "Every note opens wherever you last placed one, instead of each remembering its own spot",
+      "The undo chip under the deck shows just the undo icon and seconds left, and no longer overlaps the + button on the bottom edge",
+      "Tabs show a note's first line until you give it a title",
+      "Notes slide out of their tab when opened with the pointer and slide back when closed",
+      "Keep Notes Above Other Apps moves from each note's header to the menu bar menu",
+      "Notes open with the caret at the end, the caret never lands inside a to-do's box, and Delete right after a box removes it",
+      "The hover zone at the screen edge matches the 16-point stripe, so it no longer covers other apps’ scrollbars",
+      "If a custom notes folder goes missing, choose between quitting and the default library instead of a forced quit",
+      "Synced folders such as iCloud Drive and Dropbox are refused as a notes location, and the old library goes to the Trash after a move",
+      "Note titles use your own date and time format",
+    ],
+    caveat:
+      "This build is not notarized yet. The first time you open it, click Done, then click Open Anyway in System Settings › Privacy & Security.",
+  },
+  {
     version: "1.0",
     meta: "First public build · macOS 14+",
-    latest: true,
     changes: [
       "Edge deck on every display that rests as a row of coloured dashes and fans out on hover",
       "Dock the deck on the right, left, or bottom edge, or drag it into place",
@@ -56,8 +77,6 @@ const RELEASES = [
       "Searchable two-pane library with archive, restore, and a ten-second undo for deletes",
       "Global shortcuts for new note, library, archive, and hide that need no extra permissions",
     ],
-    caveat:
-      "This build is not notarized yet. The first time you open it, right-click Notic and choose Open, or allow it in System Settings › Privacy & Security.",
   },
 ];
 

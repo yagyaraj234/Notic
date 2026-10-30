@@ -54,14 +54,19 @@ public final class NoticWorkspace {
     }
 
     /// Copies the complete library into a new directory, then switches future writes.
-    /// The original store remains untouched as a backup; existing destinations are refused.
+    /// The original store is left untouched; a destination that already holds a
+    /// library is refused.
     public func relocateNotes(to directory: URL) throws {
         flushPendingChanges()
         guard saveState == .saved else {
             throw CocoaError(.fileWriteUnknown, userInfo: [NSLocalizedDescriptionKey: "Save current changes before changing the notes folder."])
         }
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
-        let destination = try SwiftDataNoteStore(url: directory.appending(path: "Notes.store"))
+        let storeURL = directory.appending(path: "Notes.store")
+        guard !FileManager.default.fileExists(atPath: storeURL.path) else {
+            throw CocoaError(.fileWriteFileExists, userInfo: [NSLocalizedDescriptionKey: "That folder already contains a Notic library."])
+        }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let destination = try SwiftDataNoteStore(url: storeURL)
         try destination.upsert(Array(notes.values))
         let verification = try SwiftDataNoteStore(url: directory.appending(path: "Notes.store"))
         guard Set(try verification.fetchAll()) == Set(notes.values) else {
@@ -161,15 +166,18 @@ public final class NoticWorkspace {
 
     // MARK: Creating and editing
 
-    /// Creates a timestamped note at the front of the active deck.
+    /// The default title for a note created at `date`, in the user's locale.
+    public static func timestampTitle(for date: Date) -> String {
+        "\(date.formatted(date: .abbreviated, time: .omitted)) · \(date.formatted(date: .omitted, time: .shortened))"
+    }
+
+    /// Creates a timestamped note at the front of the active deck, in a random
+    /// colour that differs from the note it lands in front of.
     @discardableResult
     public func createNote() -> Note.ID {
         let now = scheduler.now
-        let titleFormatter = DateFormatter()
-        titleFormatter.locale = Locale(identifier: "en_IN")
-        titleFormatter.dateFormat = "d MMM yyyy · h:mm a"
-        let title = titleFormatter.string(from: now)
-        let note = Note(title: title, sortOrder: nextFrontOrder(), createdAt: now, modifiedAt: now)
+        let color = NoteColor.allCases.filter { $0 != activeNotes.first?.color }.randomElement() ?? .yellow
+        let note = Note(title: Self.timestampTitle(for: now), color: color, sortOrder: nextFrontOrder(), createdAt: now, modifiedAt: now)
         notes[note.id] = note
         dirtyIDs.insert(note.id)
         persist()
@@ -240,13 +248,13 @@ public final class NoticWorkspace {
         }
     }
 
-    /// Records where the user dragged the editor. `nil` docks it to its tab
-    /// again. Does not bump `modifiedAt` — moving a note is not an edit.
-    public func setEditorOrigin(of id: Note.ID, to origin: CGPoint?) {
-        guard var note = notes[id], note.editorOrigin != origin else { return }
-        note.editorOrigin = origin
-        notes[id] = note
-        dirtyIDs.insert(id)
+    /// Records where the user dragged the editor; every note, new or old,
+    /// opens there. `nil` docks notes beside their tab again. Goes through the
+    /// autosave debounce because dragging fires rapidly.
+    public func setEditorOrigin(_ origin: CGPoint?) {
+        guard settings.editorOrigin != origin else { return }
+        settings.editorOrigin = origin
+        settingsDirty = true
         saveState = .unsaved
         scheduleAutosave()
     }

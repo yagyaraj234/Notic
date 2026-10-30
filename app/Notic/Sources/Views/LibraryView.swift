@@ -202,8 +202,10 @@ struct LibraryView: View {
         }
         switch model.filter {
         case .archived: return "Archived notes stay here until you restore or delete them."
-        case .active: return "Press ⌥⌘N or use the deck's + button to create one."
-        case .all: return "Create your first note with ⌥⌘N."
+        case .active: return workspace.settings.globalShortcutsEnabled
+            ? "Press ⌃⌥⌘N or use the deck's + button to create one." : "Use the deck's + button to create one."
+        case .all: return workspace.settings.globalShortcutsEnabled
+            ? "Create your first note with ⌃⌥⌘N." : "Create your first note with the deck's + button."
         }
     }
 
@@ -297,6 +299,11 @@ struct LibraryView: View {
                     }
                     .accessibilityIdentifier("notic.library.archive")
                 }
+                PaneButton(targets.count > 1 ? "Export (\(targets.count))" : "Export") {
+                    commands.exportNotes(targets)
+                }
+                .disabled(targets.isEmpty)
+                .accessibilityIdentifier("notic.library.export")
                 PaneButton("Delete", tint: NotePalette.destructive) {
                     workspace.delete(targets.map(\.id))
                     model.selection = []
@@ -369,13 +376,15 @@ struct LibraryRow: View {
 
             Spacer(minLength: 8)
 
-            Text(note.lifecycle == .archived ? "ARCHIVED" : "ACTIVE")
-                .font(.system(size: 9, weight: .semibold))
-                .tracking(0.6)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Color.primary.opacity(0.07)))
+            if note.lifecycle == .archived {
+                Text("ARCHIVED")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Color.primary.opacity(0.07)))
+            }
             Text(CompactAge.string(from: note.modifiedAt))
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
@@ -404,14 +413,8 @@ struct NoteDetailCard: View {
     var body: some View {
         let swatch = NotePalette.swatch(for: note.color, paper: paperStyle)
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(note.title.isEmpty ? "Untitled note" : note.title)
-                    .font(.system(size: 15, weight: .semibold))
-                Spacer()
-                Text("edited \(note.modifiedAt.formatted(.dateTime.day().month(.abbreviated)))")
-                    .font(.system(size: 11))
-                    .opacity(0.6)
-            }
+            Text(note.title.isEmpty ? "Untitled note" : note.title)
+                .font(.system(size: 15, weight: .semibold))
             ScrollView {
                 Text(TaskMarkup.preview(note.body).isEmpty ? note.body : TaskMarkup.preview(note.body))
                     .font(FontRegistry.font(fontChoice, size: 17, relativeTo: .body))

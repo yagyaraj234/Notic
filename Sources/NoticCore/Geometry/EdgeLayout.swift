@@ -68,9 +68,10 @@ public nonisolated struct EdgeLayout: Sendable {
         return EdgeLayout(visibleFrame: visibleFrame, edge: edge, position: position)
     }
 
-    public var activationDepth: CGFloat {
-        (edge == .bottom ? visibleFrame.height : visibleFrame.width) * 0.025
-    }
+    /// How far in from the edge the resting dock answers the pointer. Kept to
+    /// the drawn stripe: a deeper invisible strip sat over other apps'
+    /// scrollbars and swallowed their clicks.
+    public var activationDepth: CGFloat { Self.pillHitWidth }
 
     /// The dormant pill's pointer target, centered on the clamped deck.
     /// An empty deck still shows a single placeholder dash.
@@ -115,6 +116,12 @@ public nonisolated struct EdgeLayout: Sendable {
     /// Height of one status row (Undo, save warning) shown under the add button.
     public static let footerRowHeight: CGFloat = 32
 
+    /// Length of a status row along the deck. On the bottom edge the controls
+    /// stay upright, so a row has to fit the undo chip's width, not its height.
+    public var footerRowLength: CGFloat {
+        edge == .bottom ? 60 : Self.footerRowHeight
+    }
+
     /// Lays out the fanned deck for the given number of visible cards,
     /// positioned along the edge and kept inside the visible frame. When the
     /// preferred shingle does not fit, tabs overlap more tightly.
@@ -123,7 +130,7 @@ public nonisolated struct EdgeLayout: Sendable {
         let tiles = noteCount + (hasOverflow ? 1 : 0)
         let available = (edge == .bottom ? visibleFrame.width : visibleFrame.height) - Self.screenMargin * 2
         let fixed = Self.deckPadding * 2 + Self.addButtonGap + Self.addButtonSize
-            + CGFloat(footerRows) * Self.footerRowHeight
+            + CGFloat(footerRows) * footerRowLength
 
         let step: CGFloat
         let tabsHeight: CGFloat

@@ -4,6 +4,20 @@ import NoticCore
 
 @Suite("Task markup")
 struct TaskMarkupTests {
+    @Test func `the caret never rests inside a hidden task marker`() {
+        let text = "Intro\n  - [ ] Milk\nPlain"
+        // Clicking or jumping to the start of a task lands after its box.
+        #expect(TaskMarkup.caretOffset(6, comingFrom: 0, in: text) == 14)
+        #expect(TaskMarkup.caretOffset(10, comingFrom: 23, in: text) == 14)
+        // Stepping left out of the task text continues to the previous line.
+        #expect(TaskMarkup.caretOffset(13, comingFrom: 14, in: text) == 5)
+        // A task on the first line has nowhere earlier to go.
+        #expect(TaskMarkup.caretOffset(0, comingFrom: 6, in: "- [ ] Milk") == 6)
+        // Text and plain lines are untouched.
+        #expect(TaskMarkup.caretOffset(16, comingFrom: 14, in: text) == 16)
+        #expect(TaskMarkup.caretOffset(2, comingFrom: 0, in: text) == 2)
+    }
+
     @Test func `a line starting with a markdown task box is a task`() {
         let text = "- [ ] Milk\n- [x] Eggs\n  - [X] Indented\nPlain"
 

@@ -37,7 +37,7 @@ assert(workspace.note(b)?.lifecycle == .active)
 assert(menus.quickMenu().indexOfItem(withTitle: "Undo Delete") == -1)
 assert(DeletionCountdown.secondsRemaining(in: [], at: clock.now) == 0)
 menus.failedShortcuts = [.newNote]
-assert(menus.quickMenu().items.contains { $0.title.contains("⌥⌘N unavailable") && !$0.isEnabled })
+assert(menus.quickMenu().items.contains { $0.title.contains("⌃⌥⌘N unavailable") && !$0.isEnabled })
 let firstKeys = HotKeyCenter(), secondKeys = HotKeyCenter()
 firstKeys.register(.newNote) {}
 secondKeys.register(.newNote) {}

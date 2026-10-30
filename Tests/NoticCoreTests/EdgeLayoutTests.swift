@@ -4,6 +4,20 @@ import NoticCore
 
 @Suite("Edge layout")
 struct EdgeLayoutTests {
+    @Test func `bottom-edge status rows leave room for the upright undo chip`() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 875)
+        let bottom = EdgeLayout(visibleFrame: screen, edge: .bottom)
+        let right = EdgeLayout(visibleFrame: screen, edge: .right)
+        let growth = { (layout: EdgeLayout) -> CGFloat in
+            let with = layout.deckFrame(noteCount: 3, hasOverflow: false, footerRows: 1)
+            let without = layout.deckFrame(noteCount: 3, hasOverflow: false)
+            return layout.edge == .bottom ? with.width - without.width : with.height - without.height
+        }
+        #expect(growth(right) == EdgeLayout.footerRowHeight)
+        // The chip (icon, "10s", padding) is about 56pt wide once upright.
+        #expect(growth(bottom) >= 56)
+    }
+
     @Test func `all stack edges anchor on offset displays and keep editors inside`() {
         let screen = CGRect(x: -1440, y: 80, width: 1440, height: 875)
         for edge in ScreenEdge.allCases {
@@ -69,25 +83,25 @@ struct EdgeLayoutTests {
 
         #expect(pill.maxX == 1440)
         #expect(pill.midY == 437.5)
-        #expect(pill.width == 1440 * 0.025)
+        #expect(pill.width == EdgeLayout.pillHitWidth)
         #expect(pill.height < 875)
     }
 
-    @Test func `hover activation is confined to the outer two and a half percent`() {
+    @Test func `hover activation is confined to the drawn stripe on every display size`() {
         for width: CGFloat in [1280, 1440, 2560] {
             let screen = CGRect(x: -width, y: 80, width: width, height: 900)
             for edge in ScreenEdge.allCases {
                 let pill = EdgeLayout(visibleFrame: screen, edge: edge).pillFrame(noteCount: 3)
                 func point(depth: CGFloat) -> CGPoint {
                     switch edge {
-                    case .right: CGPoint(x: screen.maxX - width * depth, y: pill.midY)
-                    case .left: CGPoint(x: screen.minX + width * depth, y: pill.midY)
-                    case .bottom: CGPoint(x: pill.midX, y: screen.minY + screen.height * depth)
+                    case .right: CGPoint(x: screen.maxX - depth, y: pill.midY)
+                    case .left: CGPoint(x: screen.minX + depth, y: pill.midY)
+                    case .bottom: CGPoint(x: pill.midX, y: screen.minY + depth)
                     }
                 }
-                #expect(pill.contains(point(depth: 0.02)))
-                #expect(!pill.contains(point(depth: 0.03)))
-                #expect(!pill.contains(point(depth: 0.08)))
+                #expect(pill.contains(point(depth: 1)))
+                #expect(pill.contains(point(depth: EdgeLayout.pillHitWidth - 1)))
+                #expect(!pill.contains(point(depth: EdgeLayout.pillHitWidth + 1)))
             }
         }
     }

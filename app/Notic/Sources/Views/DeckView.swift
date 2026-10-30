@@ -77,7 +77,7 @@ struct DeckView: View {
                     ForEach(Array(notes.enumerated()), id: \.element.id) { index, note in
                         let dragging = drag?.id == note.id
                         NoteTabView(
-                            title: note.title,
+                            title: tabTitle(of: note),
                             swatch: NotePalette.swatch(for: note.color, paper: workspace.settings.paperStyle),
                             colorName: NotePalette.name(for: note.color),
                             preview: preview(of: note),
@@ -114,14 +114,14 @@ struct DeckView: View {
             if !workspace.pendingDeletions.isEmpty {
                 UndoChip(workspace: workspace)
                     .modifier(StackControlOrientation(edge: geometry.layout.edge))
-                    .frame(height: EdgeLayout.footerRowHeight)
+                    .frame(height: geometry.layout.footerRowLength)
                     .padding(.trailing, 6)
                     .transition(reduceMotion ? .opacity.animation(Motion.hover(reduceMotion: true)) : .opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
             }
             if case .failed = workspace.saveState {
                 SaveStateLabel(state: workspace.saveState, compact: true)
                     .modifier(StackControlOrientation(edge: geometry.layout.edge))
-                    .frame(height: EdgeLayout.footerRowHeight)
+                    .frame(height: geometry.layout.footerRowLength)
                     .padding(.trailing, 12)
                     .transition(.opacity)
             }
@@ -144,6 +144,14 @@ struct DeckView: View {
     /// How much of the tab at `index` is uncovered by the tab below it.
     private func visibleLength(at index: Int, metrics: EdgeLayout.DeckMetrics) -> CGFloat {
         index == metrics.tileCount - 1 ? EdgeLayout.tabHeight : metrics.tabStep
+    }
+
+    /// The note's title, or its first line while the title is still the
+    /// automatic timestamp: a deck of same-day timestamps is unreadable.
+    private func tabTitle(of note: Note) -> String {
+        let automatic = note.title.isEmpty || note.title == NoticWorkspace.timestampTitle(for: note.createdAt)
+        let line = preview(of: note).trimmingCharacters(in: .whitespaces)
+        return automatic && !line.isEmpty ? line : note.title
     }
 
     private func preview(of note: Note) -> String {
@@ -466,7 +474,7 @@ struct OverflowTab: View {
     }
 }
 
-/// Small "Undo" control shown under the deck while a deletion can be undone.
+/// Small undo control (icon and countdown) shown under the deck while a deletion can be undone.
 struct UndoChip: View {
     let workspace: NoticWorkspace
 
@@ -476,11 +484,10 @@ struct UndoChip: View {
             workspace.undoDelete(pending.map(\.id))
         } label: {
             HStack(spacing: 4) {
-                Label("Undo", systemImage: "arrow.uturn.backward")
+                Image(systemName: "arrow.uturn.backward")
                 DeletionCountdown(notes: pending)
             }
                 .font(.system(size: 11, weight: .semibold))
-                .labelStyle(.titleAndIcon)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(Capsule().fill(.regularMaterial).shadow(color: .black.opacity(0.14), radius: 3, y: 1))

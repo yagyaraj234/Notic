@@ -224,30 +224,24 @@ final class NoticUITests: XCTestCase {
         click(editorBody)
         app.typeKey("w", modifierFlags: .command)
         XCTAssertFalse(editorBody.exists)
-        app.typeKey("n", modifierFlags: [.option, .command])
+        app.typeKey("n", modifierFlags: [.control, .option, .command])
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
         app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
         XCTAssertFalse(editorBody.exists)
-        app.typeKey("n", modifierFlags: [.option, .command])
+        app.typeKey("n", modifierFlags: [.control, .option, .command])
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
     }
 
-    func testEditorActionsStayOnOneRowAndPinToggles() {
+    func testEditorActionsStayOnOneRow() {
         launch(seeding: 1, openingFirst: true)
         XCTAssertTrue(editorBody.waitForExistence(timeout: 5))
 
         let addTask = app.buttons["notic.editor.addTask"]
         let delete = app.buttons["notic.editor.delete"]
-        let pin = app.buttons["notic.editor.pin"]
         XCTAssertTrue(addTask.exists)
         XCTAssertTrue(delete.exists)
         XCTAssertFalse(app.buttons["notic.editor.archive"].exists)
         XCTAssertEqual(addTask.frame.midY, delete.frame.midY, accuracy: 1)
-        XCTAssertEqual(pin.value as? String, "Not pinned")
-
-        click(pin)
-
-        XCTAssertEqual(pin.value as? String, "Pinned")
     }
 
     // MARK: Overflow and library
@@ -293,7 +287,7 @@ final class NoticUITests: XCTestCase {
         let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
         finder.activate()
         XCTAssertTrue(finder.wait(for: .runningForeground, timeout: 3))
-        finder.typeKey("n", modifierFlags: [.option, .command])
+        finder.typeKey("n", modifierFlags: [.control, .option, .command])
 
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
         assertEditorIsCentered()
