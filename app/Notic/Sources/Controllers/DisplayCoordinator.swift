@@ -50,10 +50,16 @@ final class DisplayCoordinator {
                                     card: self.dragCard, below: self.edgePanel)
                 return
             }
-            self.dropZones.dismiss()
             self.geometry.layout = docked
             self.refreshFrames(animated: false)
-            self.edgePanel.alphaValue = 1
+            // A dropped stack rests closed; the card lands on the pill, not the fanned deck.
+            self.workspace.restDeck(on: display)
+            let dock = self.current.map {
+                self.layout.pillFrame(noteCount: $0.deckCount, hasOverflow: $0.hasOverflow, footerRows: $0.footerRows)
+            } ?? self.edgePanel.interactiveFrame
+            self.dropZones.dismiss(landingAt: CGPoint(x: dock.midX, y: dock.midY)) { [weak self] in
+                self?.edgePanel.alphaValue = 1
+            }
             self.workspace.updateSettings {
                 $0.stackPosition = docked.edge
                 $0.stackOffset = docked.position
@@ -170,9 +176,12 @@ final class DisplayCoordinator {
 
         var presentedEditor: EditorPanel?
         // Read before the panels change: is the pointer on the deck or editor?
-        let slide = edgeSlide
+        var slide = edgeSlide
         if let id = snapshot.openNoteID {
             if editorPanel?.noteID != id {
+                // One note replacing another in the same spot swaps at once:
+                // two editors sliding past each other read as a double exposure.
+                if editorPanel != nil { slide = nil }
                 retire(editorPanel, slidingTo: slide)
                 let panel = makeEditorPanel(for: id)
                 editorPanel = panel
@@ -213,10 +222,13 @@ final class DisplayCoordinator {
     /// How far an editor slides toward the deck's edge when it opens from, or
     /// closes into, its tab with the pointer; `nil` for keyboard commands,
     /// which stay instant. The state change arrives a turn after the event,
-    /// so the pointer being on the deck or the editor stands in for a click.
+    /// so a click that just landed on the deck or the editor stands in for
+    /// the cause. Global hotkeys arrive as Carbon events, never as a click.
     private var edgeSlide: CGVector? {
         let pointer = NSEvent.mouseLocation
-        guard NSApp.currentEvent?.type != .keyDown,
+        guard let event = NSApp.currentEvent,
+              [.leftMouseDown, .leftMouseUp].contains(event.type),
+              ProcessInfo.processInfo.systemUptime - event.timestamp < 0.5,
               edgePanel.frame.contains(pointer) || editorPanel?.frame.contains(pointer) == true
         else { return nil }
         if Motion.systemReducesMotion { return .zero }

@@ -58,7 +58,8 @@ final class EdgePanel: NSPanel {
                 return
             }
             if event.type == .leftMouseUp {
-                if movedStack { onStackDrag?(NSEvent.mouseLocation, true) }
+                let moved = movedStack
+                if moved { onStackDrag?(NSEvent.mouseLocation, true) }
                 else if dragsPill { onPillClick?() }
                 else if let pressEvent {
                     super.sendEvent(pressEvent)
@@ -66,7 +67,9 @@ final class EdgePanel: NSPanel {
                 }
                 pressPoint = nil
                 pressEvent = nil
-                onStackRelease?()
+                // A drop has already rested the deck; re-reading the pointer
+                // would fan it again from under the landed stack.
+                if !moved { onStackRelease?() }
                 return
             }
             if event.type == .mouseEntered || event.type == .mouseExited { return }
@@ -207,6 +210,7 @@ final class DropZonePanel: NSPanel {
     /// threading it to `pointer`, in screen coordinates.
     func show(_ target: ScreenEdge, over visibleFrame: CGRect, pointer: CGPoint, card: DragCard, below panel: NSWindow) {
         if !isVisible { seed = .random(in: 0..<1000) }
+        flights += 1
         let local = CGPoint(x: pointer.x - visibleFrame.minX, y: visibleFrame.maxY - pointer.y)
         hosting.rootView = DropZoneView(target: target, pointer: local, card: card, seed: seed)
         if frame != visibleFrame { setFrame(visibleFrame, display: true) }
@@ -217,17 +221,38 @@ final class DropZonePanel: NSPanel {
         if !isVisible { order(.below, relativeTo: panel.windowNumber) }
     }
 
-    func dismiss() {
-        guard isVisible else { return }
-        fade(to: 0) { [weak self] in
-            // A new drag may have started while this one faded out.
-            if self?.alphaValue == 0 { self?.orderOut(nil) }
+    /// Ends the drag: the card flies into the stack at `dock` (screen
+    /// coordinates) while the webs fade, then `completion` brings the stack
+    /// back so it never shows twice. Reduced motion skips the flight.
+    func dismiss(landingAt dock: CGPoint, then completion: @escaping () -> Void) {
+        let view = hosting.rootView
+        guard isVisible, view.card != nil, !Motion.systemReducesMotion else {
+            hosting.rootView = DropZoneView(target: view.target, pointer: view.pointer, card: nil, seed: view.seed)
+            completion()
+            fade(to: 0) { [weak self] in
+                // A new drag may have started while this one faded out.
+                if self?.alphaValue == 0 { self?.orderOut(nil) }
+            }
+            return
+        }
+        let local = CGPoint(x: dock.x - frame.minX, y: frame.maxY - dock.y)
+        hosting.rootView = DropZoneView(target: view.target, pointer: view.pointer, card: view.card, seed: view.seed, landing: local)
+        let flight = flights
+        DispatchQueue.main.asyncAfter(deadline: .now() + Motion.landDuration) { [weak self] in
+            // A new drag that began mid-flight owns the panel now.
+            guard let self, self.flights == flight else { return }
+            self.orderOut(nil)
+            completion()
         }
     }
+
+    /// Bumped by every `show`, so a landing that was interrupted never finishes.
+    private var flights = 0
 
     private func fade(to alpha: CGFloat, duration: TimeInterval = Motion.scaled(0.16), then completion: (() -> Void)? = nil) {
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = Motion.systemReducesMotion ? 0 : duration
+            context.timingFunction = Motion.panelExit
             animator().alphaValue = alpha
         }, completionHandler: completion)
     }
@@ -242,6 +267,8 @@ private struct DropZoneView: View {
     let pointer: CGPoint
     let card: DragCard?
     let seed: Double
+    /// Where the card is flying to on release; `nil` while it is held.
+    var landing: CGPoint?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -256,16 +283,25 @@ private struct DropZoneView: View {
                         .opacity(active ? 1 : 0)
                 }
                 .scaleEffect(active ? 1.02 : 1, anchor: Self.anchor(edge))
+                // Only the webs ease; the card and thread track the pointer 1:1.
+                .animation(reduceMotion ? nil : .timingCurve(0.23, 1, 0.32, 1, duration: Motion.scaled(0.16)), value: target)
             }
-            GeometryReader { proxy in
-                Silk(from: Web.hub(of: target, in: CGRect(origin: .zero, size: proxy.size)), to: pointer)
-                    .stroke(Color.accentColor.opacity(0.7), style: StrokeStyle(lineWidth: 1, lineCap: .round))
-            }
+            .opacity(landing == nil ? 1 : 0)
             if let card {
-                DragCardView(card: card).position(pointer)
+                if landing == nil {
+                    GeometryReader { proxy in
+                        Silk(from: Web.hub(of: target, in: CGRect(origin: .zero, size: proxy.size)), to: pointer)
+                            .stroke(Color.accentColor.opacity(0.7), style: StrokeStyle(lineWidth: 1, lineCap: .round))
+                    }
+                }
+                DragCardView(card: card)
+                    .scaleEffect(landing == nil ? 1 : 0.5)
+                    .opacity(landing == nil ? 1 : 0)
+                    .position(landing ?? pointer)
             }
         }
-        .animation(reduceMotion ? nil : .easeOut(duration: Motion.scaled(0.16)), value: target)
+        // Eases only the release; a drag resuming mid-flight snaps back under the pointer.
+        .animation(landing == nil ? nil : .timingCurve(0.23, 1, 0.32, 1, duration: Motion.landDuration), value: landing)
         .accessibilityHidden(true)
     }
 
