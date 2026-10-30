@@ -124,14 +124,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func createNoteAndOpen(on requestedDisplay: DisplayID?) {
         guard let workspace, let displays else { return }
         let id = workspace.createNote()
+        // Opens wherever the last note was placed, like every other note.
         if let display = requestedDisplay ?? displays.displayUnderPointer() ?? displays.primaryDisplay() {
-            if let screen = NSScreen.screens.first(where: { $0.noticDisplayID == display }),
-               let size = workspace.note(id)?.editorSize {
-                workspace.setEditorOrigin(
-                    of: id,
-                    to: CGPoint(x: screen.visibleFrame.midX - size.width / 2, y: screen.visibleFrame.midY - size.height / 2)
-                )
-            }
             workspace.openNote(id, on: display)
             if requestedDisplay == nil {
                 displays.focusEditor(on: display)

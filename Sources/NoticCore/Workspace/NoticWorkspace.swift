@@ -248,13 +248,13 @@ public final class NoticWorkspace {
         }
     }
 
-    /// Records where the user dragged the editor. `nil` docks it to its tab
-    /// again. Does not bump `modifiedAt` — moving a note is not an edit.
-    public func setEditorOrigin(of id: Note.ID, to origin: CGPoint?) {
-        guard var note = notes[id], note.editorOrigin != origin else { return }
-        note.editorOrigin = origin
-        notes[id] = note
-        dirtyIDs.insert(id)
+    /// Records where the user dragged the editor; every note, new or old,
+    /// opens there. `nil` docks notes beside their tab again. Goes through the
+    /// autosave debounce because dragging fires rapidly.
+    public func setEditorOrigin(_ origin: CGPoint?) {
+        guard settings.editorOrigin != origin else { return }
+        settings.editorOrigin = origin
+        settingsDirty = true
         saveState = .unsaved
         scheduleAutosave()
     }

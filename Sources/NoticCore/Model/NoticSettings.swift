@@ -76,6 +76,9 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
     public var stackPosition: ScreenEdge = .right
     /// Normalized position along the edge, measured from the bottom or left.
     public var stackOffset: Double = 0.5
+    /// Where the user last dragged a note's editor, shared by every note.
+    /// `nil` means notes open level with their tab.
+    public var editorOrigin: CGPoint?
     /// The deck stays fanned at the edge instead of resting as the dock.
     public var keepsDeckOpen = false
     public var showsDockIcon = false
@@ -103,6 +106,7 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
         fanTrigger = try container.decodeIfPresent(FanTrigger.self, forKey: .fanTrigger) ?? defaults.fanTrigger
         stackPosition = try container.decodeIfPresent(ScreenEdge.self, forKey: .stackPosition) ?? defaults.stackPosition
         stackOffset = try container.decodeIfPresent(Double.self, forKey: .stackOffset) ?? defaults.stackOffset
+        editorOrigin = try container.decodeIfPresent(CGPoint.self, forKey: .editorOrigin)
         keepsDeckOpen = try container.decodeIfPresent(Bool.self, forKey: .keepsDeckOpen) ?? defaults.keepsDeckOpen
         showsDockIcon = try container.decodeIfPresent(Bool.self, forKey: .showsDockIcon) ?? defaults.showsDockIcon
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? defaults.launchAtLogin
@@ -124,5 +128,6 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
         }
         stackOffset = stackOffset.isFinite ? min(max(stackOffset, 0), 1) : 0.5
         openDelay = min(max(openDelay, Self.openDelayRange.lowerBound), Self.openDelayRange.upperBound)
+        if let origin = editorOrigin, !origin.x.isFinite || !origin.y.isFinite { editorOrigin = nil }
     }
 }

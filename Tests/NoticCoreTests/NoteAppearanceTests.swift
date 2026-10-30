@@ -46,35 +46,31 @@ struct NoteAppearanceTests {
         #expect(try fixture.launch().note(id)?.editorSize == CGSize(width: 640, height: 480))
     }
 
-    @Test func `a dragged editor origin is restored after relaunch and can be cleared`() throws {
+    @Test func `one dragged editor origin is shared by every note, survives relaunch and can be cleared`() throws {
         let fixture = try WorkspaceFixture()
         let workspace = try fixture.launch()
-        let id = workspace.createNote()
+        #expect(workspace.settings.editorOrigin == nil)
 
-        #expect(workspace.note(id)?.editorOrigin == nil)
-
-        workspace.setEditorOrigin(of: id, to: CGPoint(x: 420, y: 180))
+        workspace.setEditorOrigin(CGPoint(x: 420, y: 180))
         fixture.scheduler.advance(by: 0.25)
-        #expect(try fixture.launch().note(id)?.editorOrigin == CGPoint(x: 420, y: 180))
+        #expect(try fixture.launch().settings.editorOrigin == CGPoint(x: 420, y: 180))
 
         let again = try fixture.launch()
-        again.setEditorOrigin(of: id, to: nil)
+        again.setEditorOrigin(nil)
         again.flushPendingChanges()
-        #expect(try fixture.launch().note(id)?.editorOrigin == nil)
+        #expect(try fixture.launch().settings.editorOrigin == nil)
     }
 
-    @Test func `typing does not clear a placed editor origin`() throws {
+    @Test func `typing does not clear the placed editor origin`() throws {
         let fixture = try WorkspaceFixture()
         let workspace = try fixture.launch()
         let id = workspace.createNote()
-        workspace.setEditorOrigin(of: id, to: CGPoint(x: 300, y: 200))
+        workspace.setEditorOrigin(CGPoint(x: 300, y: 200))
         workspace.flushPendingChanges()
 
         workspace.updateBody(of: id, to: "still here")
-        #expect(workspace.note(id)?.editorOrigin == CGPoint(x: 300, y: 200))
-
         fixture.scheduler.advance(by: 0.25)
-        #expect(try fixture.launch().note(id)?.editorOrigin == CGPoint(x: 300, y: 200))
+        #expect(try fixture.launch().settings.editorOrigin == CGPoint(x: 300, y: 200))
         #expect(try fixture.launch().note(id)?.body == "still here")
     }
 }

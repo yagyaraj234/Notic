@@ -78,7 +78,6 @@ final class DisplayCoordinator {
                 openNoteID: openNote?.id,
                 openTabIndex: openNote.flatMap { note in deck.firstIndex { $0.id == note.id } } ?? 0,
                 openEditorSize: openNote?.editorSize,
-                editorOrigin: openNote?.editorOrigin,
                 settings: workspace.settings
             )
         }) { [weak self] snapshot in
@@ -139,7 +138,6 @@ final class DisplayCoordinator {
         var openNoteID: Note.ID?
         var openTabIndex: Int
         var openEditorSize: CGSize?
-        var editorOrigin: CGPoint?
         var settings: NoticSettings
     }
 
@@ -209,25 +207,24 @@ final class DisplayCoordinator {
                 // Re-anchor using the size the user just chose: beside the deck,
                 // or wherever they dragged the note, which resizing may have shifted.
                 guard let self, let size = self.workspace.note(id)?.editorSize else { return }
-                if self.placedOrigins[id] != nil, let panel = self.editorPanel, panel.noteID == id {
-                    self.placedOrigins[id] = panel.frame.origin
+                if self.current?.settings.editorOrigin != nil, let panel = self.editorPanel, panel.noteID == id {
+                    self.workspace.setEditorOrigin(panel.frame.origin)
+                    self.current?.settings.editorOrigin = panel.frame.origin
                 }
                 self.current?.openEditorSize = size
                 self.refreshFrames(animated: false)
             },
             onMove: { [weak self] origin in
                 guard let self else { return }
-                self.placedOrigins[id] = origin
-                self.workspace.setEditorOrigin(of: id, to: origin)
+                self.workspace.setEditorOrigin(origin)
+                // Keep the snapshot in step so the settings change does not re-apply mid-drag.
+                self.current?.settings.editorOrigin = origin
                 if origin == nil {
-                    self.current?.editorOrigin = nil
                     if let editorPanel = self.editorPanel, let current = self.current,
                        let target = self.editorTarget(for: current) {
                         // Double-click: glide back to the tab instead of jumping.
                         self.glideEditor(editorPanel, to: target)
                     }
-                } else {
-                    self.current?.editorOrigin = origin
                 }
             },
             onClose: { [weak self] in
@@ -280,8 +277,7 @@ final class DisplayCoordinator {
 
         if let editorPanel, !editorPanel.inLiveResize, !editorPanel.isBeingDragged,
            let target = editorTarget(for: current), editorPanel.frame != target {
-            let followsDrag = current.editorOrigin == nil
-                && current.openNoteID.flatMap { placedOrigins[$0] } == nil
+            let followsDrag = current.settings.editorOrigin == nil
                 && geometry.tabDrag?.id == current.openNoteID
             if followsDrag || !animated || !editorPanel.isVisible {
                 editorPanel.setFrame(target, display: true)
@@ -291,14 +287,9 @@ final class DisplayCoordinator {
         }
     }
 
-    /// Where the user last dragged each note's editor on this display. A note
-    /// without an entry opens level with its tab; one with an entry reopens
-    /// where it was left for as long as Notic runs.
-    private var placedOrigins: [Note.ID: CGPoint] = [:]
-
     private func editorTarget(for snapshot: Snapshot) -> CGRect? {
         guard let size = snapshot.openEditorSize, let id = snapshot.openNoteID else { return nil }
-        if let origin = snapshot.editorOrigin ?? placedOrigins[id] {
+        if let origin = snapshot.settings.editorOrigin {
             return layout.editorFrame(size: size, placedAt: origin)
         }
         let deck = layout.deckMetrics(noteCount: snapshot.deckCount, hasOverflow: snapshot.hasOverflow, footerRows: snapshot.footerRows)

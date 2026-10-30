@@ -49,6 +49,8 @@ const RELEASES = [
       "Global shortcuts move to ⌃⌥⌘N, ⌃⌥⌘L, ⌃⌥⌘A, and ⌃⌥⌘H so Finder and Safari keep ⌥⌘N and ⌥⌘L, and a Settings switch turns them off",
       "Export one note or all notes as Markdown files",
       "New notes start in a random colour, never the same as the note before",
+      "Every note opens wherever you last placed one, instead of each remembering its own spot",
+      "The undo chip under the deck shows just the undo icon and seconds left",
       "The hover zone at the screen edge matches the 16-point stripe, so it no longer covers other apps’ scrollbars",
       "If a custom notes folder goes missing, choose between quitting and the default library instead of a forced quit",
       "Synced folders such as iCloud Drive and Dropbox are refused as a notes location, and the old library goes to the Trash after a move",

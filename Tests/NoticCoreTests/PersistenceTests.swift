@@ -25,7 +25,6 @@ struct PersistenceTests {
         workspace.delete([deleted])
         workspace.updateBody(of: active, to: "Unsaved edit before moving")
         workspace.setColor(of: active, to: .mint)
-        workspace.setEditorOrigin(of: active, to: CGPoint(x: 123, y: 456))
         let destination = fixture.directory.appending(path: "Chosen library")
 
         try workspace.relocateNotes(to: destination)

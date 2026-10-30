@@ -12,6 +12,8 @@ nonisolated final class NoteRecord {
     var sortOrder: Int
     var editorWidth: Double
     var editorHeight: Double
+    // Unused since 1.1: the editor position is shared by every note and lives
+    // in settings. Kept so existing libraries open without a schema migration.
     var editorOriginX: Double?
     var editorOriginY: Double?
     var createdAt: Date
@@ -43,13 +45,6 @@ nonisolated final class NoteRecord {
         sortOrder = note.sortOrder
         editorWidth = note.editorSize.width
         editorHeight = note.editorSize.height
-        if let origin = note.editorOrigin {
-            editorOriginX = origin.x
-            editorOriginY = origin.y
-        } else {
-            editorOriginX = nil
-            editorOriginY = nil
-        }
         modifiedAt = note.modifiedAt
         switch note.lifecycle {
         case .active:
@@ -87,10 +82,6 @@ nonisolated final class NoteRecord {
             color: NoteColor(rawValue: colorRaw) ?? .yellow,
             sortOrder: sortOrder,
             editorSize: CGSize(width: editorWidth, height: editorHeight),
-            editorOrigin: {
-                if let x = editorOriginX, let y = editorOriginY { return CGPoint(x: x, y: y) }
-                return nil
-            }(),
             createdAt: createdAt,
             modifiedAt: modifiedAt,
             lifecycle: lifecycle

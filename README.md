@@ -8,8 +8,9 @@ is remembered after relaunch. Option-drag a note tab to reorder notes. At rest t
 dashes, one per note, floating over the desktop. Hover and the notes shingle
 down the edge as colour tabs, each with a vertical label and its own slight
 lean; click one and it slides out level with its tab as a resizable plain-text
-editor. Drag the editor by its tab strip or header to move it anywhere;
-double-click the header to send it back beside its tab. Type `[] ` at the
+editor. Drag the editor by its tab strip or header to move it anywhere, and
+every note, new or old, opens in that spot from then on; double-click the
+header to send notes back beside their tab. Type `[] ` at the
 start of a line (or press ⇧⌘T / Add to-do) for a checkbox to-do; click the
 box to mark it done, or press ⌘Return on its line. Each task exposes an accessible
 checkbox with its label and checked state. Notes come in

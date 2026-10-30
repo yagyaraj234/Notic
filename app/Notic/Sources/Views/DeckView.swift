@@ -466,7 +466,7 @@ struct OverflowTab: View {
     }
 }
 
-/// Small "Undo" control shown under the deck while a deletion can be undone.
+/// Small undo control (icon and countdown) shown under the deck while a deletion can be undone.
 struct UndoChip: View {
     let workspace: NoticWorkspace
 
@@ -476,11 +476,10 @@ struct UndoChip: View {
             workspace.undoDelete(pending.map(\.id))
         } label: {
             HStack(spacing: 4) {
-                Label("Undo", systemImage: "arrow.uturn.backward")
+                Image(systemName: "arrow.uturn.backward")
                 DeletionCountdown(notes: pending)
             }
                 .font(.system(size: 11, weight: .semibold))
-                .labelStyle(.titleAndIcon)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(Capsule().fill(.regularMaterial).shadow(color: .black.opacity(0.14), radius: 3, y: 1))

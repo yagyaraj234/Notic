@@ -46,7 +46,6 @@ struct NoteCreationTests {
         #expect(duplicate.color == .mint)
         #expect(duplicate.title == source.title + " copy")
         #expect(duplicate.editorSize == source.editorSize)
-        #expect(duplicate.editorOrigin == nil)
         #expect(duplicate.lifecycle == .active)
     }
 
