@@ -108,20 +108,6 @@ struct EditorView: View {
 
             Spacer(minLength: 8)
 
-            ChromeButton(
-                workspace.settings.showsAboveAllApps ? "Unpin all notes" : "Pin all notes",
-                systemImage: workspace.settings.showsAboveAllApps ? "pin.fill" : "pin",
-                on: swatch
-            ) {
-                withAnimation(NSApp.currentEvent?.type == .leftMouseUp ? Motion.hover(reduceMotion: reduceMotion) : nil) {
-                    workspace.updateSettings { $0.showsAboveAllApps.toggle() }
-                }
-            }
-            .contentTransition(.opacity)
-            .help(workspace.settings.showsAboveAllApps ? "Stop keeping all notes above other apps" : "Keep all notes above other apps")
-            .accessibilityValue(workspace.settings.showsAboveAllApps ? "Pinned" : "Not pinned")
-            .accessibilityIdentifier("notic.editor.pin")
-
             if case .failed = workspace.saveState {
                 SaveStateLabel(state: workspace.saveState, compact: false)
             }

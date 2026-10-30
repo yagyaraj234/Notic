@@ -157,15 +157,17 @@ final class DisplayCoordinator {
         }
 
         var presentedEditor: EditorPanel?
+        // Read before the panels change: is the pointer on the deck or editor?
+        let slide = edgeSlide
         if let id = snapshot.openNoteID {
             if editorPanel?.noteID != id {
-                retire(editorPanel)
+                retire(editorPanel, slidingTo: slide)
                 let panel = makeEditorPanel(for: id)
                 editorPanel = panel
                 presentedEditor = panel
             }
         } else if let editorPanel {
-            retire(editorPanel)
+            retire(editorPanel, slidingTo: slide)
             self.editorPanel = nil
         }
 
@@ -174,7 +176,7 @@ final class DisplayCoordinator {
         edgePanel.orderFrontRegardless()
 
         if let presentedEditor {
-            presentedEditor.present(at: editorTarget(for: snapshot) ?? presentedEditor.frame)
+            presentedEditor.present(at: editorTarget(for: snapshot) ?? presentedEditor.frame, slidingFrom: slide)
         } else {
             editorPanel?.orderFrontRegardless()
         }
@@ -186,15 +188,32 @@ final class DisplayCoordinator {
     }
 
     /// Hide the previous editor before presenting its replacement.
-    private func retire(_ panel: EditorPanel?) {
+    private func retire(_ panel: EditorPanel?, slidingTo offset: CGVector?) {
         guard let panel else { return }
         retiring.insert(panel)
-        panel.dismiss { [weak self] in
+        panel.dismiss(slidingTo: offset) { [weak self] in
             self?.retiring.remove(panel)
         }
     }
 
     private var retiring: Set<EditorPanel> = []
+
+    /// How far an editor slides toward the deck's edge when it opens from, or
+    /// closes into, its tab with the pointer; `nil` for keyboard commands,
+    /// which stay instant. The state change arrives a turn after the event,
+    /// so the pointer being on the deck or the editor stands in for a click.
+    private var edgeSlide: CGVector? {
+        let pointer = NSEvent.mouseLocation
+        guard NSApp.currentEvent?.type != .keyDown,
+              edgePanel.frame.contains(pointer) || editorPanel?.frame.contains(pointer) == true
+        else { return nil }
+        if Motion.systemReducesMotion { return .zero }
+        switch layout.edge {
+        case .right: return CGVector(dx: 16, dy: 0)
+        case .left: return CGVector(dx: -16, dy: 0)
+        case .bottom: return CGVector(dx: 0, dy: -16)
+        }
+    }
 
     private func makeEditorPanel(for id: Note.ID) -> EditorPanel {
         EditorPanel(
@@ -238,7 +257,7 @@ final class DisplayCoordinator {
     /// moving to a new place, not appearing.
     private func glideEditor(_ panel: EditorPanel, to target: CGRect) {
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = Motion.systemReducesMotion ? 0 : 0.22
+            context.duration = Motion.systemReducesMotion ? 0 : Motion.scaled(0.22)
             context.timingFunction = Motion.panelEnter
             panel.animator().setFrame(target, display: true)
         }
@@ -263,7 +282,7 @@ final class DisplayCoordinator {
         edgePanel.dragsPill = current.state == .dormant
         // Leave the add button and footer controls on their normal click path.
         let controls = EdgeLayout.deckPadding + EdgeLayout.addButtonSize
-            + EdgeLayout.addButtonGap + CGFloat(current.footerRows) * EdgeLayout.footerRowHeight
+            + EdgeLayout.addButtonGap + CGFloat(current.footerRows) * layout.footerRowLength
         if layout.edge == .bottom {
             edgePanel.stackDragFrame = CGRect(x: deck.frame.minX + controls, y: deck.frame.minY,
                                               width: deck.frame.width - controls, height: deck.frame.height)

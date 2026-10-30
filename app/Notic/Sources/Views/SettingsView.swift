@@ -154,6 +154,7 @@ struct SettingsView: View {
                     Text("How long the pointer rests on the dock before the deck fans")
                 }
                 .accessibilityValue("\(Int((workspace.settings.openDelay * 1000).rounded())) milliseconds")
+                .disabled(workspace.settings.fanTrigger == .click)
 
                 LabeledContent {
                     Picker("Fan the deck", selection: binding(\.fanTrigger)) {

@@ -71,6 +71,9 @@ final class NoticMenus: NSObject {
         menu.addItem(item("All Notes…", #selector(showLibrary), shortcut: .showLibrary))
         menu.addItem(item("Show Archive…", #selector(showArchive), shortcut: .showArchive))
         menu.addItem(item("Export All Notes…", #selector(exportAll)))
+        let above = item("Keep Notes Above Other Apps", #selector(toggleAboveAllApps))
+        above.state = workspace.settings.showsAboveAllApps ? .on : .off
+        menu.addItem(above)
         let settings = item("Settings…", #selector(showSettings))
         settings.keyEquivalent = ","
         settings.keyEquivalentModifierMask = .command
@@ -225,6 +228,7 @@ final class NoticMenus: NSObject {
     @objc private func showLibrary() { commands.showLibrary() }
     @objc private func showArchive() { commands.showArchive() }
     @objc private func toggleHidden() { commands.toggleHidden() }
+    @objc private func toggleAboveAllApps() { workspace.updateSettings { $0.showsAboveAllApps.toggle() } }
     @objc private func showSettings() { commands.showSettings() }
     @objc private func quit() { commands.quit() }
 }

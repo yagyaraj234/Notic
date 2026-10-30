@@ -4,6 +4,20 @@ import NoticCore
 
 @Suite("Edge layout")
 struct EdgeLayoutTests {
+    @Test func `bottom-edge status rows leave room for the upright undo chip`() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 875)
+        let bottom = EdgeLayout(visibleFrame: screen, edge: .bottom)
+        let right = EdgeLayout(visibleFrame: screen, edge: .right)
+        let growth = { (layout: EdgeLayout) -> CGFloat in
+            let with = layout.deckFrame(noteCount: 3, hasOverflow: false, footerRows: 1)
+            let without = layout.deckFrame(noteCount: 3, hasOverflow: false)
+            return layout.edge == .bottom ? with.width - without.width : with.height - without.height
+        }
+        #expect(growth(right) == EdgeLayout.footerRowHeight)
+        // The chip (icon, "10s", padding) is about 56pt wide once upright.
+        #expect(growth(bottom) >= 56)
+    }
+
     @Test func `all stack edges anchor on offset displays and keep editors inside`() {
         let screen = CGRect(x: -1440, y: 80, width: 1440, height: 875)
         for edge in ScreenEdge.allCases {
