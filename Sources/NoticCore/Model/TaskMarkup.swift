@@ -122,6 +122,20 @@ public nonisolated enum TaskMarkup {
         return Edit(replace: cursor..<cursor, with: "\n" + unchecked)
     }
 
+    /// Where an insertion point may sit. The marker is hidden behind a drawn
+    /// box, so a caret inside it (or in the indentation before it) would type
+    /// into the markup and break the to-do. Such a caret moves to the start of
+    /// the task's text, except when it stepped back one character from there:
+    /// then it carries on to the end of the previous line.
+    public static func caretOffset(_ offset: Int, comingFrom previous: Int, in text: String) -> Int {
+        guard let marker = marker(onLineContaining: offset, in: text) else { return offset }
+        let ns = text as NSString
+        let lineStart = ns.lineRange(for: NSRange(location: min(offset, ns.length), length: 0)).location
+        guard offset >= lineStart, offset < marker.range.upperBound else { return offset }
+        if previous == marker.range.upperBound, lineStart > 0 { return lineStart - 1 }
+        return marker.range.upperBound
+    }
+
     /// The body with markers drawn as boxes, for previews and lists.
     public static func preview(_ text: String) -> String {
         let ns = text as NSString
