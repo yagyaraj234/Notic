@@ -30,7 +30,7 @@ This command:
 - builds the Release app;
 - verifies its code signature;
 - replaces `/Applications/Notic.app` with the new build; and
-- creates `dist/Notic-1.0.dmg` for installation on another Mac.
+- creates `dist/Notic-1.1.dmg` for installation on another Mac.
 
 Open the installed app:
 
@@ -38,18 +38,17 @@ Open the installed app:
 open /Applications/Notic.app
 ```
 
-Notic runs in the menu bar. Press Option-Command-N to create a note.
+Notic runs in the menu bar. Press Control-Option-Command-N to create a note.
 
 ## Install from the disk image
 
-1. Open `dist/Notic-1.0.dmg`.
+1. Open `dist/Notic-1.1.dmg`.
 2. Drag `Notic.app` onto `Applications`.
-3. In Applications, Control-click Notic and choose **Open**.
-4. Confirm **Open** when macOS warns that the developer cannot be verified.
+3. Open Notic. When macOS says it cannot check it for malicious software, click **Done**.
+4. Open **System Settings > Privacy & Security** and click **Open Anyway** next to Notic.
 
 The warning appears because local builds are ad-hoc signed, not notarized with
-an Apple Developer ID. On macOS 15 or later, you may need to choose **Done**,
-then allow Notic in **System Settings > Privacy & Security > Open Anyway**.
+an Apple Developer ID. It is needed only once.
 
 ## Build without installing
 

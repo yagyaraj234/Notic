@@ -29,7 +29,7 @@ function builtAsset(source) {
 
 const assetUrls = new Map([
   ["assets/notic-icon.svg", "/assets/notic-icon.svg"],
-  ["downloads/Notic-1.0-macOS.dmg", "/downloads/Notic-1.0-macOS.dmg"],
+  ["downloads/Notic-1.1-macOS.dmg", "/downloads/Notic-1.1-macOS.dmg"],
 ]);
 
 const pages = [

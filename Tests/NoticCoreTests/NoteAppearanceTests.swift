@@ -20,13 +20,6 @@ struct NoteAppearanceTests {
         #expect(NoteColor.allCases == [.yellow, .coral, .mint, .blue, .lavender, .peach, .sage, .rose])
     }
 
-    @Test func `new notes still default to yellow`() throws {
-        let workspace = try WorkspaceFixture().launch()
-        let id = workspace.createNote()
-
-        #expect(workspace.note(id)?.color == .yellow)
-    }
-
     @Test func `a new note opens at the default editor size`() throws {
         let workspace = try WorkspaceFixture().launch()
         let id = workspace.createNote()

@@ -21,9 +21,10 @@ struct NoteCreationTests {
 
         #expect(workspace.activeNotes.map(\.id) == [second, first])
         let note = try #require(workspace.activeNotes.first)
-        #expect(note.title == "8 Sep 2026 · 3:42 PM")
+        #expect(note.title == NoticWorkspace.timestampTitle(for: now))
+        #expect(note.title.contains("2026") && note.title.contains(" · "))
         #expect(note.body == "")
-        #expect(note.color == .yellow)
+        #expect(workspace.note(first)?.color != note.color)
         #expect(note.lifecycle == .active)
     }
 
@@ -52,6 +53,7 @@ struct NoteCreationTests {
     @Test func `editing a duplicate leaves its original untouched`() throws {
         let workspace = try WorkspaceFixture().launch()
         let original = workspace.createNote()
+        workspace.setColor(of: original, to: .yellow)
         workspace.updateBody(of: original, to: "original")
         let copy = try #require(workspace.duplicateNote(original))
 
@@ -92,5 +94,16 @@ struct NoteCreationTests {
 
         let relaunched = try fixture.launch()
         #expect(relaunched.activeNotes.map(\.id) == [original, copy, last])
+    }
+
+    @Test func `each new note gets a different colour from the one before it`() throws {
+        let workspace = try WorkspaceFixture().launch()
+        var colors: [NoteColor] = []
+        for _ in 1...40 {
+            let id = workspace.createNote()
+            colors.append(try #require(workspace.note(id)?.color))
+        }
+        #expect(zip(colors, colors.dropFirst()).allSatisfy { $0 != $1 })
+        #expect(Set(colors).count > 2)
     }
 }

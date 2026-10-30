@@ -38,7 +38,7 @@ export const FAQS = [
   ],
   [
     "How do I install Notic?",
-    "Open the downloaded DMG and drag Notic into Applications. It runs on macOS 14 or later. Notic isn't notarized yet, so the first time macOS may block it: run xattr -cr /Applications/Notic.app in Terminal, or click Open Anyway in System Settings › Privacy & Security.",
+    "Open the downloaded DMG and drag Notic into Applications. It runs on macOS 14 or later. Notic isn't notarized yet, so the first time macOS may block it: click Done, then click Open Anyway in System Settings › Privacy & Security. You only need to do this once.",
   ],
 ];
 
@@ -138,9 +138,9 @@ export function UseCasesSection() {
 }
 
 const MENU_ITEMS = [
-  ["New Note", "⌥⌘N"],
-  ["All Notes", "⌥⌘L"],
-  ["Archive", "⌥⌘A"],
+  ["New Note", "⌃⌥⌘N"],
+  ["All Notes", "⌃⌥⌘L"],
+  ["Archive", "⌃⌥⌘A"],
   ["Hide Notic", "⌃⌥⌘H"],
 ] as const;
 
@@ -156,7 +156,7 @@ export function WorkflowSection() {
               <span>1</span>
               <div>
                 <h3>Capture from anywhere</h3>
-                <p>Press ⌥⌘N in any app. A fresh note opens, ready for your first line.</p>
+                <p>Press ⌃⌥⌘N in any app. A fresh note opens, ready for your first line.</p>
               </div>
             </li>
             <li>

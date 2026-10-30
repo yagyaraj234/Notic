@@ -68,9 +68,10 @@ public nonisolated struct EdgeLayout: Sendable {
         return EdgeLayout(visibleFrame: visibleFrame, edge: edge, position: position)
     }
 
-    public var activationDepth: CGFloat {
-        (edge == .bottom ? visibleFrame.height : visibleFrame.width) * 0.025
-    }
+    /// How far in from the edge the resting dock answers the pointer. Kept to
+    /// the drawn stripe: a deeper invisible strip sat over other apps'
+    /// scrollbars and swallowed their clicks.
+    public var activationDepth: CGFloat { Self.pillHitWidth }
 
     /// The dormant pill's pointer target, centered on the clamped deck.
     /// An empty deck still shows a single placeholder dash.

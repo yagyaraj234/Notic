@@ -8,6 +8,7 @@ import SwiftUI
 struct SettingsView: View {
     let workspace: NoticWorkspace
     let chooseNotesFolder: () -> Void
+    let useDefaultNotesFolder: () -> Void
 
     enum Pane: String, CaseIterable, Hashable {
         case general
@@ -208,11 +209,15 @@ struct SettingsView: View {
                 HStack {
                     Button("Choose Folder…", action: chooseNotesFolder)
                         .accessibilityIdentifier("notic.settings.chooseNotesFolder")
+                    if workspace.notesDirectory?.lastPathComponent.hasPrefix("Notic Library ") == true {
+                        Button("Use Default Folder", action: useDefaultNotesFolder)
+                            .accessibilityIdentifier("notic.settings.useDefaultNotesFolder")
+                    }
                     Button("Show in Finder") {
                         if let directory = workspace.notesDirectory { NSWorkspace.shared.open(directory) }
                     }
                 }
-                Text("Changing folders copies all notes into a new Notic library. The previous library stays as a backup. Notes are stored in Notic’s database format.")
+                Text("Changing folders copies all notes into a new Notic library and moves the previous one to the Trash. Choose a local folder: iCloud Drive, Dropbox, and other synced folders can corrupt the notes database. To get notes out as Markdown, use Export in All Notes.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -222,6 +227,11 @@ struct SettingsView: View {
                     .accessibilityIdentifier("notic.settings.dock")
                 Toggle("Open Notic at login", isOn: binding(\.launchAtLogin))
                     .accessibilityIdentifier("notic.settings.launchAtLogin")
+                Toggle(isOn: binding(\.globalShortcutsEnabled)) {
+                    Text("Global shortcuts")
+                    Text("⌃⌥⌘N new note, ⌃⌥⌘L all notes, ⌃⌥⌘A archive, ⌃⌥⌘H hide — from any app")
+                }
+                .accessibilityIdentifier("notic.settings.globalShortcuts")
             }
         }
     }
@@ -250,7 +260,7 @@ struct SettingsView: View {
             }
 
             Section("Privacy") {
-                Text("Notes are stored in the notes folder shown in General settings. Notic makes no network requests and collects no analytics. If you choose a cloud-synced folder, its provider may upload your notes.")
+                Text("Notes are stored in the notes folder shown in General settings. Notic makes no network requests and collects no analytics.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -341,7 +351,7 @@ private struct SidebarRow: View {
 }
 
 final class SettingsWindowController: NSWindowController {
-    init(workspace: NoticWorkspace, chooseNotesFolder: @escaping () -> Void) {
+    init(workspace: NoticWorkspace, chooseNotesFolder: @escaping () -> Void, useDefaultNotesFolder: @escaping () -> Void) {
         let window = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 760, height: 660),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
@@ -354,7 +364,7 @@ final class SettingsWindowController: NSWindowController {
         window.isReleasedWhenClosed = false
         window.setAccessibilityIdentifier("notic.settings")
         super.init(window: window)
-        window.contentView = NSHostingView(rootView: SettingsView(workspace: workspace, chooseNotesFolder: chooseNotesFolder))
+        window.contentView = NSHostingView(rootView: SettingsView(workspace: workspace, chooseNotesFolder: chooseNotesFolder, useDefaultNotesFolder: useDefaultNotesFolder))
     }
 
     @available(*, unavailable)

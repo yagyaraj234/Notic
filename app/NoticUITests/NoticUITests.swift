@@ -224,11 +224,11 @@ final class NoticUITests: XCTestCase {
         click(editorBody)
         app.typeKey("w", modifierFlags: .command)
         XCTAssertFalse(editorBody.exists)
-        app.typeKey("n", modifierFlags: [.option, .command])
+        app.typeKey("n", modifierFlags: [.control, .option, .command])
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
         app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
         XCTAssertFalse(editorBody.exists)
-        app.typeKey("n", modifierFlags: [.option, .command])
+        app.typeKey("n", modifierFlags: [.control, .option, .command])
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
     }
 
@@ -293,7 +293,7 @@ final class NoticUITests: XCTestCase {
         let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
         finder.activate()
         XCTAssertTrue(finder.wait(for: .runningForeground, timeout: 3))
-        finder.typeKey("n", modifierFlags: [.option, .command])
+        finder.typeKey("n", modifierFlags: [.control, .option, .command])
 
         XCTAssertTrue(editorBody.waitForExistence(timeout: 3))
         assertEditorIsCentered()

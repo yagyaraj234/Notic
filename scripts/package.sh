@@ -4,7 +4,7 @@
 #
 # The build is ad-hoc signed (no Developer ID), so on another Mac Gatekeeper
 # shows "cannot be opened because the developer cannot be verified" the first
-# time. The README inside the disk image explains the right-click ▸ Open step.
+# time. The README inside the disk image explains the Open Anyway step.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -36,13 +36,12 @@ cat > "$stage/How to open Notic.txt" <<'EOF'
 Notic — sticky notes on the edge of your screen (macOS 14 or later)
 
 1. Drag Notic.app into the Applications folder alias next to it.
-2. In Applications, right-click (or Control-click) Notic and choose Open.
-   macOS will say the developer cannot be verified because this copy was not
-   notarized with Apple. Click Open (on macOS 15 and later: click Done, then
-   go to System Settings > Privacy & Security and click "Open Anyway").
+2. Open Notic. macOS will say it cannot check it for malicious software
+   because this copy was not notarized with Apple. Click Done, then go to
+   System Settings > Privacy & Security and click "Open Anyway".
    This is only needed the first time.
 3. Notic lives in the menu bar. Move your pointer to the right edge of the
-   screen to see your notes; press Option-Command-N for a new note.
+   screen to see your notes; press Control-Option-Command-N for a new note.
 
 Notic stores everything locally and never connects to the network.
 EOF

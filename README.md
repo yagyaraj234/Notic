@@ -50,7 +50,7 @@ Developer ID certificate, notarization, and stapling as described in the
 deployment checklist in `SPEC.md`.
 
 To install a local build and produce a shareable disk image without a
-Developer ID (recipients must right-click ▸ Open the first time, or allow it in
+Developer ID (recipients must click Done at the first warning, then Open Anyway in
 System Settings ▸ Privacy & Security):
 
 ```sh
@@ -61,9 +61,9 @@ System Settings ▸ Privacy & Security):
 
 | Action | Shortcut |
 | --- | --- |
-| New note | ⌥⌘N |
-| All notes | ⌥⌘L |
-| Archive | ⌥⌘A |
+| New note | ⌃⌥⌘N |
+| All notes | ⌃⌥⌘L |
+| Archive | ⌃⌥⌘A |
 | Hide or show Notic | ⌃⌥⌘H |
 
 Shortcuts are registered with the Carbon hot-key API, which does not require
@@ -71,7 +71,7 @@ Accessibility or Input Monitoring permission.
 
 Keyboard-only use: the edge deck is deliberately a non-activating surface that
 never takes keyboard focus, so it is reached with the pointer or VoiceOver. The
-keyboard path is ⌥⌘N to create and start typing, and ⌥⌘L for the library,
+keyboard path is ⌃⌥⌘N to create and start typing, and ⌃⌥⌘L for the library,
 where arrow keys select notes, Return opens the selected active note, and the
 Archive/Restore/Delete buttons act on the selection. Inside an editor, ⌘W
 closes it.
@@ -85,10 +85,13 @@ above all apps* preference applies to expanded editors.
   `~/Library/Containers/com.yagyaraj.notic/Data/Library/Application Support/Notic/`
   (`Notes.store` is a SwiftData/SQLite store; `Settings.json` holds preferences).
 - Settings → General → Storage → Choose Folder copies the entire library into a new
-  subfolder and switches future saves there. The old library stays as a backup.
+  subfolder and switches future saves there. The old library moves to the Trash, so
+  deleted notes don't survive in stale copies. Use Default Folder moves them back.
   Preferences stay in the sandbox. This stores a Notic database, not individual text files.
-  Keep the chosen folder available; Notic reports an error if it cannot reopen it.
-  Cloud-folder providers may upload these files; simultaneous multi-Mac editing is unsupported.
+  If the chosen folder is missing at launch (drive unplugged, folder moved), Notic offers
+  to quit so you can reconnect it, or to fall back to the default library.
+  iCloud Drive and other synced folders are refused: syncing can corrupt the database.
+- All Notes ▸ Export (or Export All Notes… in the menu) saves notes as Markdown files.
 - Notic never opens a network connection and contains no analytics,
   crash-reporting, or third-party SDKs.
 - Notes are not encrypted by Notic; the sandbox, your macOS account, and
@@ -98,7 +101,7 @@ above all apps* preference applies to expanded editors.
   the ten-second Undo window closes. Undo is available in the deck, library,
   and menu bar; the deck and library show time until the next deletion expires.
 - To uninstall: quit Notic, turn off *Launch at Login* in Settings if you enabled
-  it, move `Notic.app` to the Trash, and delete the container folder above. Custom libraries and old backups remain in their chosen folders.
+  it, move `Notic.app` to the Trash, and delete the container folder above. A custom library remains in its chosen folder.
 
 ## Test-only launch arguments
 

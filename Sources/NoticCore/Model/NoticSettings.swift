@@ -81,6 +81,8 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
     public var showsDockIcon = false
     public var launchAtLogin = false
     public var showsAboveAllApps = false
+    /// Whether the system-wide shortcuts are registered at all.
+    public var globalShortcutsEnabled = true
     public var visibleOverFullScreenApps = false
     /// Cleared once the user has created a note; drives the first-run prompt.
     public var hasCreatedFirstNote = false
@@ -105,6 +107,7 @@ public nonisolated struct NoticSettings: Codable, Equatable, Sendable {
         showsDockIcon = try container.decodeIfPresent(Bool.self, forKey: .showsDockIcon) ?? defaults.showsDockIcon
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? defaults.launchAtLogin
         showsAboveAllApps = try container.decodeIfPresent(Bool.self, forKey: .showsAboveAllApps) ?? defaults.showsAboveAllApps
+        globalShortcutsEnabled = try container.decodeIfPresent(Bool.self, forKey: .globalShortcutsEnabled) ?? defaults.globalShortcutsEnabled
         visibleOverFullScreenApps = try container.decodeIfPresent(Bool.self, forKey: .visibleOverFullScreenApps) ?? defaults.visibleOverFullScreenApps
         hasCreatedFirstNote = try container.decodeIfPresent(Bool.self, forKey: .hasCreatedFirstNote) ?? defaults.hasCreatedFirstNote
         // A hand-edited or future-written file must never leave the app in a

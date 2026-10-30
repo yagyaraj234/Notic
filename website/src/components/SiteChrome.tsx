@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowDownToLine, Check, Copy, Menu, X } from "lucide-react";
-import { CONTACT_URL, DEVELOPER_URL, DOWNLOAD_URL, ICON_URL, NAV_ITEMS } from "../site";
+import { ArrowDownToLine, Menu, X } from "lucide-react";
+import { CONTACT_URL, DEVELOPER_URL, DOWNLOAD_URL, ICON_URL, NAV_ITEMS, VERSION } from "../site";
 
 export function StructuredData({ data }: { data: unknown }) {
   return <script type="application/ld+json">{JSON.stringify(data)}</script>;
@@ -11,7 +11,6 @@ export function StructuredData({ data }: { data: unknown }) {
 const OPEN_INSTALL_DIALOG = "notic:open-install-dialog";
 /** Matches `.showcase-dialog[data-closing]` in index.css. */
 const DIALOG_EXIT_MS = 150;
-const UNQUARANTINE_COMMAND = "xattr -cr /Applications/Notic.app";
 
 export function DownloadButton({ className = "", compact = false }: { className?: string; compact?: boolean }) {
   return (
@@ -19,7 +18,7 @@ export function DownloadButton({ className = "", compact = false }: { className?
       href={DOWNLOAD_URL}
       download
       className={`download-button ${className}`}
-      aria-label="Download Notic 1.0 for macOS"
+      aria-label={`Download Notic ${VERSION} for macOS`}
       onClick={(event) => {
         // The href stays a real link, so it still downloads without JS or on a modified click.
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -35,22 +34,11 @@ export function DownloadButton({ className = "", compact = false }: { className?
 
 function InstallDialog() {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [copied, setCopied] = useState(false);
-
   useEffect(() => {
-    const open = () => {
-      setCopied(false);
-      dialogRef.current?.showModal();
-    };
+    const open = () => dialogRef.current?.showModal();
     window.addEventListener(OPEN_INSTALL_DIALOG, open);
     return () => window.removeEventListener(OPEN_INSTALL_DIALOG, open);
   }, []);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
 
   /** Same exit as the showcase sheet: WebKit cannot transition `overlay`. */
   const close = () => {
@@ -65,15 +53,6 @@ function InstallDialog() {
       delete dialog.dataset.closing;
       dialog.close();
     }, DIALOG_EXIT_MS);
-  };
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(UNQUARANTINE_COMMAND);
-      setCopied(true);
-    } catch {
-      // Clipboard can be blocked; the command is selectable text either way.
-    }
   };
 
   return (
@@ -108,32 +87,15 @@ function InstallDialog() {
             Open the downloaded <strong>.dmg</strong> and drag Notic into Applications.
           </li>
           <li>
-            On first launch, macOS may say{" "}
-            <em>"Notic can't be opened because Apple cannot check it for malicious software."</em>
+            Open Notic. macOS says it can't check Notic for malicious software. Click <strong>Done</strong>.
           </li>
           <li>
-            Open <strong>Terminal</strong> and run this command to allow it:
+            Go to System Settings › Privacy &amp; Security, scroll down, and click <strong>Open Anyway</strong> next to
+            Notic. Confirm with your password.
           </li>
         </ol>
 
-        <div className="install-command">
-          <code>{UNQUARANTINE_COMMAND}</code>
-          <button type="button" onClick={copy} aria-label={copied ? "Copied" : "Copy command"}>
-            {copied ? (
-              <Check size={16} strokeWidth={2} aria-hidden="true" />
-            ) : (
-              <Copy size={16} strokeWidth={1.8} aria-hidden="true" />
-            )}
-          </button>
-          <span className="sr-only" aria-live="polite">
-            {copied ? "Command copied" : ""}
-          </span>
-        </div>
-
-        <p className="install-note">
-          Then open Notic again. It launches normally from then on. Rather skip Terminal? Go to System Settings ›
-          Privacy &amp; Security and click <strong>Open Anyway</strong>.
-        </p>
+        <p className="install-note">You only do this once. Notic launches normally from then on.</p>
 
         <a href={DOWNLOAD_URL} download className="download-button install-download" onClick={close}>
           <span>Got it, download now</span>

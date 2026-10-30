@@ -81,7 +81,7 @@ const SHOWCASE = [
     title: "Every note, one search away.",
     copy: "A two-pane library holds everything: active notes, archived notes, and all their text.",
     detail:
-      "Search titles and bodies, filter active or archived notes, and archive, restore, or delete in bulk. Open it from the menu bar or with ⌥⌘L, then use the arrow keys and Return from the keyboard.",
+      "Search titles and bodies, filter active or archived notes, and archive, restore, or delete in bulk. Open it from the menu bar or with ⌃⌥⌘L, then use the arrow keys and Return from the keyboard.",
     visual: (
       <div className="shot shot-library">
         <div className="library-list">

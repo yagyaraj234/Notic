@@ -297,6 +297,11 @@ struct LibraryView: View {
                     }
                     .accessibilityIdentifier("notic.library.archive")
                 }
+                PaneButton(targets.count > 1 ? "Export (\(targets.count))" : "Export") {
+                    commands.exportNotes(targets)
+                }
+                .disabled(targets.isEmpty)
+                .accessibilityIdentifier("notic.library.export")
                 PaneButton("Delete", tint: NotePalette.destructive) {
                     workspace.delete(targets.map(\.id))
                     model.selection = []
