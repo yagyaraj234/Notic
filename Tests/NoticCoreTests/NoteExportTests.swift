@@ -23,3 +23,14 @@ struct NoteExportTests {
         #expect(files[2].contents == "\n")
     }
 }
+
+@Suite("Note import")
+struct NoteImportTests {
+    @Test func `a heading becomes the title and the file name is the fallback`() {
+        let titled = NoteImport.note(fileName: "x.md", contents: "# Plan\n\nBody\n")
+        #expect(titled.title == "Plan" && titled.body == "Body")
+        let plain = NoteImport.note(fileName: "Ideas.txt", contents: "just text\n")
+        #expect(plain.title == "Ideas" && plain.body == "just text")
+        #expect(NoteImport.note(fileName: "a.md", contents: "# Only title").body == "")
+    }
+}

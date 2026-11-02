@@ -42,4 +42,20 @@ struct SaveFailureTests {
         #expect(workspace.saveState == .saved)
         #expect(try fixture.launch().note(id)?.body == "First and second")
     }
+
+    @Test func `a library folder deleted while running is recreated on the next save`() throws {
+        let fixture = try WorkspaceFixture()
+        let library = fixture.directory.appending(path: "Library", directoryHint: .isDirectory)
+        let workspace = try NoticWorkspace(directory: fixture.directory, notesDirectory: library, scheduler: fixture.scheduler)
+        let first = workspace.createNote()
+        workspace.flushPendingChanges()
+        try FileManager.default.removeItem(at: library)
+
+        let second = workspace.createNote()
+        workspace.flushPendingChanges()
+
+        #expect(workspace.saveState == .saved)
+        let reopened = try NoticWorkspace(directory: fixture.directory, notesDirectory: library, scheduler: fixture.scheduler)
+        #expect(reopened.note(first) != nil && reopened.note(second) != nil)
+    }
 }
