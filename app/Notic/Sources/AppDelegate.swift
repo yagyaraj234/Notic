@@ -37,6 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+        if !usesTestDirectory, customNotesDirectory == nil {
+            customNotesDirectory = prepareDefaultLibrary()
+        }
         do {
             workspace = try NoticWorkspace(
                 directory: launchOptions.resolveDataDirectory(default: Self.dataDirectory),
@@ -62,6 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         commands.dockMenu = { [weak self] (id: Note.ID?) in self?.menus?.dockMenu(forNote: id) ?? NSMenu() }
         commands.libraryMenu = { [weak self] (id: Note.ID) in self?.menus?.libraryMenu(forNote: id) ?? NSMenu() }
         commands.exportNotes = { [weak self] notes in self?.exportNotes(notes) }
+        commands.importNotes = { [weak self] in self?.importNotes() }
 
         let menus = NoticMenus(workspace: workspace, commands: commands)
         self.menus = menus
@@ -291,7 +295,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Moves the notes back into Notic’s built-in folder.
     private func useDefaultNotesFolder() {
         do {
-            try switchLibrary(to: Self.dataDirectory) {
+            try switchLibrary(to: Self.defaultLibrary) {
                 UserDefaults.standard.removeObject(forKey: Self.storageBookmarkKey)
             }
             storageAccess?.stopAccessingSecurityScopedResource()
@@ -367,7 +371,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Default library and settings live in Application Support.
+    /// Adds the Markdown or text files the user picks as new notes.
+    func importNotes() {
+        guard let workspace else { return }
+        let panel = NSOpenPanel()
+        panel.title = "Import Notes"
+        panel.message = "Each Markdown (.md) or text (.txt) file becomes a note."
+        panel.prompt = "Import"
+        panel.allowedContentTypes = [.plainText, .init(filenameExtension: "md") ?? .plainText]
+        panel.allowsMultipleSelection = true
+        NSApp.activate()
+        guard panel.runModal() == .OK else { return }
+        var failed: [String] = []
+        var items: [(title: String, body: String)] = []
+        for url in panel.urls {
+            if let text = try? String(contentsOf: url, encoding: .utf8) {
+                items.append(NoteImport.note(fileName: url.lastPathComponent, contents: text))
+            } else {
+                failed.append(url.lastPathComponent)
+            }
+        }
+        workspace.importNotes(items)
+        if !failed.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = "Couldn’t import some files"
+            alert.informativeText = "These aren’t readable text files: " + failed.joined(separator: ", ")
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    /// The default library: ~/Documents/notic, the real home folder rather than
+    /// the sandbox container, so it is the same visible place for every user.
+    private static var defaultLibrary: URL {
+        let home = getpwuid(getuid()).map { String(cString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
+        return URL(filePath: home, directoryHint: .isDirectory).appending(path: "Documents/notic", directoryHint: .isDirectory)
+    }
+
+    /// Creates the default library and moves an older one from Application
+    /// Support into it. Returns `nil` (keep the old location) if that fails.
+    private func prepareDefaultLibrary() -> URL? {
+        let target = Self.defaultLibrary
+        do {
+            try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+            if !FileManager.default.fileExists(atPath: target.appending(path: "Notes.store").path) {
+                for name in ["Notes.store", "Notes.store-shm", "Notes.store-wal"] {
+                    let old = Self.dataDirectory.appending(path: name)
+                    if FileManager.default.fileExists(atPath: old.path) {
+                        try FileManager.default.moveItem(at: old, to: target.appending(path: name))
+                    }
+                }
+            }
+            return target
+        } catch {
+            log.error("Default notes folder unavailable: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Settings (and the pre-1.2 library) live in Application Support.
     private static var dataDirectory: URL {
         URL.applicationSupportDirectory.appending(path: "Notic", directoryHint: .isDirectory)
     }
@@ -393,6 +455,8 @@ struct AppCommands {
     var libraryMenu: (Note.ID) -> NSMenu = { _ in NSMenu() }
     /// Saves the given notes as Markdown files in a folder the user picks.
     var exportNotes: ([Note]) -> Void = { _ in }
+    /// Asks for Markdown or text files and adds each as a note.
+    var importNotes: () -> Void = {}
     let showLibrary: () -> Void
     let showArchive: () -> Void
     let toggleHidden: () -> Void

@@ -70,6 +70,7 @@ final class NoticMenus: NSObject {
         menu.addItem(.separator())
         menu.addItem(item("All Notes…", #selector(showLibrary), shortcut: .showLibrary))
         menu.addItem(item("Show Archive…", #selector(showArchive), shortcut: .showArchive))
+        menu.addItem(item("Import Notes…", #selector(importNotes)))
         menu.addItem(item("Export All Notes…", #selector(exportAll)))
         let above = item("Keep Notes Above Other Apps", #selector(toggleAboveAllApps))
         above.state = workspace.settings.showsAboveAllApps ? .on : .off
@@ -217,6 +218,8 @@ final class NoticMenus: NSObject {
         guard let id = noteID(from: sender), let note = workspace.note(id) else { return }
         commands.exportNotes([note])
     }
+
+    @objc private func importNotes() { commands.importNotes() }
 
     @objc private func exportAll() {
         commands.exportNotes(workspace.libraryNotes(matching: "", filter: .all))

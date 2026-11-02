@@ -185,6 +185,21 @@ public final class NoticWorkspace {
         return note.id
     }
 
+    /// Adds imported notes to the front of the deck in one save, keeping their order.
+    public func importNotes(_ items: [(title: String, body: String)]) {
+        guard !items.isEmpty else { return }
+        let now = scheduler.now
+        var order = nextFrontOrder() - items.count + 1
+        for item in items {
+            let note = Note(title: item.title, body: item.body, color: NoteColor.allCases.randomElement() ?? .yellow, sortOrder: order, createdAt: now, modifiedAt: now)
+            order += 1
+            notes[note.id] = note
+            dirtyIDs.insert(note.id)
+        }
+        persist()
+        updateSettings { $0.hasCreatedFirstNote = true }
+    }
+
     public func updateTitle(of id: Note.ID, to title: String) {
         edit(id) { $0.title = title }
     }
@@ -591,12 +606,29 @@ public final class NoticWorkspace {
             }
             saveState = .saved
         } catch {
+            if recreateMissingStore() { return persist() }
             saveState = .failed(error.localizedDescription)
             retryWork = scheduler.schedule(after: NoticTiming.saveRetryInterval) { [weak self] in
                 guard let self else { return }
                 self.retryWork = nil
                 self.persist()
             }
+        }
+    }
+
+    /// If the library folder or store file was deleted or moved while Notic ran,
+    /// writes every note it holds into a fresh store at the same place.
+    private func recreateMissingStore() -> Bool {
+        guard let directory = notesDirectory,
+              !FileManager.default.fileExists(atPath: directory.appending(path: "Notes.store").path) else { return false }
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let fresh = try SwiftDataNoteStore(url: directory.appending(path: "Notes.store"))
+            try fresh.upsert(notes.values.filter { !doomedIDs.contains($0.id) })
+            store = fresh
+            return true
+        } catch {
+            return false
         }
     }
 
