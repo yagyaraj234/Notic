@@ -18,12 +18,25 @@ final class DisplayCoordinator {
     private var observation: ObservationToken?
     private var tabDragObservation: ObservationToken?
     private var focusesNextEditor = false
+    private var screen: NSScreen
+
+    /// The bottom dock sits flush with the physical screen edge, under the
+    /// Dock; the side docks stay inside `visibleFrame` so the Dock never hides them.
+    private static func layout(on screen: NSScreen, settings: NoticSettings) -> EdgeLayout {
+        var frame = screen.visibleFrame
+        if settings.stackPosition == .bottom {
+            frame.size.height += frame.minY - screen.frame.minY
+            frame.origin.y = screen.frame.minY
+        }
+        return EdgeLayout(visibleFrame: frame, edge: settings.stackPosition, position: settings.stackOffset)
+    }
 
     init(display: DisplayID, screen: NSScreen, workspace: NoticWorkspace, commands: AppCommands) {
         self.display = display
         self.workspace = workspace
         self.commands = commands
-        self.geometry = DisplayGeometry(layout: EdgeLayout(visibleFrame: screen.visibleFrame, edge: workspace.settings.stackPosition, position: workspace.settings.stackOffset))
+        self.screen = screen
+        self.geometry = DisplayGeometry(layout: Self.layout(on: screen, settings: workspace.settings))
 
         edgePanel = EdgePanel(
             content: EdgeSurfaceView(workspace: workspace, display: display, geometry: geometry, commands: commands),
@@ -119,7 +132,8 @@ final class DisplayCoordinator {
 
     /// Re-clamps everything after a resolution or arrangement change.
     func screenDidChange(_ screen: NSScreen) {
-        geometry.layout = EdgeLayout(visibleFrame: screen.visibleFrame, edge: workspace.settings.stackPosition, position: workspace.settings.stackOffset)
+        self.screen = screen
+        geometry.layout = Self.layout(on: screen, settings: workspace.settings)
         refreshFrames(animated: false)
     }
 
@@ -165,7 +179,7 @@ final class DisplayCoordinator {
         let previousSettings = current?.settings
         current = snapshot
         if previousSettings?.stackPosition != snapshot.settings.stackPosition || previousSettings?.stackOffset != snapshot.settings.stackOffset {
-            geometry.layout = EdgeLayout(visibleFrame: layout.visibleFrame, edge: snapshot.settings.stackPosition, position: snapshot.settings.stackOffset)
+            geometry.layout = Self.layout(on: screen, settings: snapshot.settings)
         }
 
         if snapshot.isHidden {
